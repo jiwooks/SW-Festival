@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TargetTable — 리포트</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background: #FFFFFF; color: #101828; }
+a { color: #0A57C4; } a:hover { color: #07408F; }
+button { font-family: inherit; }
+</style>
+<style>
+  body { display: flex; justify-content: center; padding: 24px 0; background: #EDF1F6; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 1760px; box-sizing: border-box; background: #F5F7FA; display: flex; flex-direction: column">
+
+  <div style="height: 64px; flex-shrink: 0; box-sizing: border-box; padding: 0 32px; background: #FFFFFF; border-bottom: 1px solid #E4E8EE; display: flex; align-items: center; gap: 36px">
+    <div style="display: flex; align-items: center; gap: 9px">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="6.5" stroke="#0A57C4" stroke-width="2.2"></circle>
+        <circle cx="16" cy="16" r="2.4" fill="#0A57C4"></circle>
+        <circle cx="16" cy="4" r="1.9" fill="#0B7A1B"></circle>
+        <circle cx="27.4" cy="12.3" r="1.9" fill="#0A57C4"></circle>
+        <circle cx="23.1" cy="25.7" r="1.9" fill="#0A57C4"></circle>
+        <circle cx="8.9" cy="25.7" r="1.9" fill="#0A57C4"></circle>
+        <circle cx="4.6" cy="12.3" r="1.9" fill="#0A57C4"></circle>
+      </svg>
+      <span style="font-size: 17px; font-weight: 600; letter-spacing: -0.01em">TargetTable</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; align-items: center; gap: 6px">
+      <span style="display: flex; align-items: center; gap: 7px; padding: 6px 12px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #667085">01</span><span style="font-size: 13px; color: #475467">아이디어</span></span>
+      <span style="display: flex; align-items: center; gap: 7px; padding: 6px 12px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #667085">02</span><span style="font-size: 13px; color: #475467">타깃</span></span>
+      <span style="display: flex; align-items: center; gap: 7px; padding: 6px 12px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #667085">03</span><span style="font-size: 13px; color: #475467">한눈에 보기</span></span>
+      <span style="display: flex; align-items: center; gap: 7px; padding: 6px 12px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #667085">04</span><span style="font-size: 13px; color: #475467">대화</span></span>
+      <span style="display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 9px; background: #EEF4FE; border: 1px solid #C7DBFA"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #0A57C4">05</span><span style="font-size: 13px; font-weight: 600; color: #0A57C4">리포트</span></span>
+    </div>
+    <button type="button" style="height: 40px; padding: 0 16px; font-size: 14px; color: #344054; background: #FFFFFF; border: 1px solid #C8D1DC; border-radius: 12px; cursor: pointer">내려받기</button>
+  </div>
+
+  <div style="flex-grow: 1; box-sizing: border-box; padding: 36px 110px 36px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: #667085">
+        <span>2026.09.27</span>
+        <span>·</span>
+        <span>3 PERSONAS · 2 ROUNDS</span>
+      </div>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 700; line-height: 1.4; letter-spacing: -0.026em">'인터뷰를 대신한다'에는 셋 다 선을 그었지만,<br>'인터뷰 전후에 쓰는 도구'로 설명하자 세 명 다 쓰겠다고 했어요.</h1>
+      <p style="margin: 0; font-size: 16px; line-height: 1.75; color: #344054; max-width: 1020px">가장 크게 갈린 건 <strong style="font-weight: 600">AI 대화를 검증 근거로 인정할 수 있느냐</strong>였어요. 인터뷰 경험이 많은 사람은 반대했고, 팀을 여럿 관리하는 사람은 찬성했어요. 서비스 자체보다 각자 처한 상황이 입장을 갈랐고, 설명을 바꾸자 갈등이 상당 부분 풀렸어요. 다만 <strong style="font-weight: 600">돈 이야기는 아무도 먼저 꺼내지 않았습니다.</strong></p>
+    </div>
+
+    <div style="display: flex; gap: 16px">
+      <div style="flex-grow: 1; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 5px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #667085">오간 대화</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 600; letter-spacing: -0.01em">2R · 9발언</div>
+      </div>
+      <div style="flex-grow: 1; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 5px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #667085">의견이 갈린 쟁점</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 600; color: #9A461A">1개</div>
+      </div>
+      <div style="flex-grow: 1; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 5px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #667085">입장이 바뀐 횟수</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 600; color: #0B7A1B">1회</div>
+      </div>
+      <div style="flex-grow: 1; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 5px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #667085">새로 나온 이야기</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 600">2개</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: baseline; gap: 12px">
+        <h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em">쟁점별로 누가 어디에 섰나</h2>
+        <span style="font-size: 14px; color: #667085">대화에서 실제로 논의가 오간 순서대로</span>
+      </div>
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div style="flex-grow: 1; font-size: 17px; font-weight: 600">AI와 나눈 대화를 검증 근거로 쓸 수 있나</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; padding: 6px 11px; background: #FDF1E7; border-radius: 9px; color: #9A461A">2 : 1 갈림</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #14625E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">민</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">박민수</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #FDF1E7; border-radius: 9px; color: #9A461A">조건부</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">근거까지는 아니어도, 인터뷰 전에 질문을 정리하는 용도로는 충분하다고 봤어요.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #B4551E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">서</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">정서윤</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #344054; border-radius: 9px; color: #FFFFFF">반대</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">인터뷰에서 얻는 건 답변 내용이 아니라 반응이라, AI 답으로는 팀도 투자자도 설득 못 한다고 했어요.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #7A4E9E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">태</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">김태현</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">찬성</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">40팀을 다 볼 수 없는 입장이라, 완벽하지 않아도 아무것도 없이 오는 것보다는 낫다고 봤어요.</div>
+          </div>
+        </div>
+        <div style="box-sizing: border-box; padding: 13px 16px; background: #F8FAFC; border-radius: 11px; font-size: 14px; line-height: 1.75; color: #344054"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #667085">읽는 법</span> &nbsp;반대한 쪽은 인터뷰 경험이 30명 이상이고, 찬성한 쪽은 본인이 인터뷰를 해본 적이 없어요. 서비스를 어떻게 보느냐가 아니라 <strong style="font-weight: 600">지금 무엇이 가능한 위치인가</strong>가 입장을 갈랐어요.</div>
+      </div>
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div style="flex-grow: 1; font-size: 17px; font-weight: 600">인터뷰를 대신하지 않고, 전후에 쓰는 도구라면</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; padding: 6px 11px; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">셋 다 동의</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #14625E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">민</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">박민수</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">찬성</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">인터뷰를 잡기 전 준비 단계로 딱 맞다고 했어요.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #B4551E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">서</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">정서윤</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">찬성</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">반대에서 돌아선 지점이에요. 인터뷰가 끝난 뒤에는 사람을 다시 부를 수 없다는 게 이유였어요.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #7A4E9E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">태</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">김태현</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">찬성</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">멘토링 전에 내주는 사전 과제 자리에 넣을 수 있겠다고 했어요.</div>
+          </div>
+        </div>
+        <div style="box-sizing: border-box; padding: 13px 16px; background: #F8FAFC; border-radius: 11px; font-size: 14px; line-height: 1.75; color: #344054"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #667085">읽는 법</span> &nbsp;같은 기능인데 설명 한 줄만 바꿨더니 세 명 다 찬성으로 돌아섰어요. 만드는 것보다 <strong style="font-weight: 600">뭐라고 부르는지</strong>가 더 크게 작용하는 구간이에요.</div>
+      </div>
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div style="flex-grow: 1; font-size: 17px; font-weight: 600">돈을 낼 만한가</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; padding: 6px 11px; background: #F1F4F8; border-radius: 9px; color: #475467">결론 안 남</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #14625E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">민</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">박민수</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #FDF1E7; border-radius: 9px; color: #9A461A">조건부</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">월 1만 원을 넘으면 고민된다고 했어요. 금액 자체는 직접 말했지만, 낼 이유까지는 말하지 않았어요.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #B4551E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">서</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">정서윤</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #FDF1E7; border-radius: 9px; color: #9A461A">조건부</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">금액보다 결과가 근거로 쓰일 수 있느냐를 따졌어요. 액수는 끝까지 언급하지 않았습니다.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: #7A4E9E; color: #FFFFFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">태</div>
+            <div style="width: 66px; flex-shrink: 0; font-size: 14px; font-weight: 500">김태현</div>
+            <div style="width: 84px; flex-shrink: 0; font-size: 12px; font-weight: 600; text-align: center; padding: 5px 0; background: #F1F4F8; border-radius: 9px; color: #475467">보류</div>
+            <div style="flex-grow: 1; font-size: 14px; line-height: 1.65; color: #344054">예산이 연초에 한 번 정해져서, 쓰고 싶어도 다음 기수까지 기다려야 한다고 했어요.</div>
+          </div>
+        </div>
+        <div style="box-sizing: border-box; padding: 13px 16px; background: #F8FAFC; border-radius: 11px; font-size: 14px; line-height: 1.75; color: #344054"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #667085">읽는 법</span> &nbsp;세 명 다 쓰겠다고 했지만 <strong style="font-weight: 600">돈 이야기는 아무도 먼저 꺼내지 않았어요.</strong> 여기까지가 이 대화로 알 수 있는 한계예요. 지불 의사는 실제로 돈을 낸 적이 있는 사람에게 물어야 알 수 있어요.</div>
+      </div>
+
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 22px; display: flex; flex-direction: column; gap: 11px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">생각이 바뀐 순간</h2>
+        <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap">
+          <span style="font-size: 12px; padding: 5px 10px; background: #F1F4F8; border-radius: 9px; color: #475467">인터뷰를 대신한다</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          <span style="font-size: 12px; font-weight: 600; padding: 5px 10px; background: #E8FAEC; border-radius: 9px; color: #0B7A1B">끝나고 다시 물어본다</span>
+        </div>
+        <div style="font-size: 14px; line-height: 1.75; color: #344054">정서윤님이 유일하게 입장을 바꿨어요. 이유를 밝히고 바뀐 경우라 기록해뒀어요. 그냥 분위기에 맞춰 동의한 건 여기 넣지 않아요.</div>
+        <div style="box-sizing: border-box; padding: 11px 14px; background: #F8FAFC; border-radius: 11px; font-size: 13px; line-height: 1.7; color: #344054">"끝나고 '이것도 물어볼걸' 하는 게 항상 있거든요. 그 용도라면 저도 씁니다."</div>
+      </div>
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 22px; display: flex; flex-direction: column; gap: 11px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">예상 못 했던 이야기</h2>
+        <div style="font-size: 14px; line-height: 1.75; color: #344054">적어주신 내용에 없던 쓰임새가 두 개 나왔어요. 검증 도구가 아니라 <strong style="font-weight: 600">멘토링 전 사전 과제</strong>로 쓰는 것, 그리고 인터뷰가 끝난 뒤 <strong style="font-weight: 600">놓친 질문을 되묻는</strong> 용도예요.</div>
+        <div style="box-sizing: border-box; padding: 11px 14px; background: #F8FAFC; border-radius: 11px; font-size: 13px; line-height: 1.7; color: #344054">"멘토링 전에 과제를 내주는데, 절반은 안 해옵니다."</div>
+        <div style="font-size: 13px; line-height: 1.6; color: #667085">둘 다 기관 쪽에서 나온 이야기예요.</div>
+      </div>
+
+      <div style="box-sizing: border-box; background: #FFFFFF; border: 1px solid #E1E6ED; border-radius: 15px; padding: 20px 22px; display: flex; flex-direction: column; gap: 11px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">이번 대화로는 알 수 없는 것</h2>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; gap: 9px; align-items: flex-start">
+            <div style="width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: #9A461A; margin-top: 8px"></div>
+            <div style="font-size: 14px; line-height: 1.65; color: #344054">실제로 돈을 낼지 — 아무도 먼저 꺼내지 않음</div>
+          </div>
+          <div style="display: flex; gap: 9px; align-items: flex-start">
+            <div style="width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: #9A461A; margin-top: 8px"></div>
+            <div style="font-size: 14px; line-height: 1.65; color: #344054">한 번 써보고 다시 올지 — 대화만으로는 확인 불가</div>
+          </div>
+          <div style="display: flex; gap: 9px; align-items: flex-start">
+            <div style="width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: #9A461A; margin-top: 8px"></div>
+            <div style="font-size: 14px; line-height: 1.65; color: #344054">기관 계약이 실제로 가능한 절차인지</div>
+          </div>
+        </div>
+        <div style="font-size: 13px; line-height: 1.65; color: #667085">여기 있는 항목은 실제 사람에게 물어야 답이 나와요.</div>
+      </div>
+
+    </div>
+
+    <div style="box-sizing: border-box; background: #101828; border-radius: 15px; padding: 24px 28px; display: flex; align-items: center; gap: 24px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 17px; font-weight: 600; color: #EAECF0">다음에 물어볼 것은 정해졌어요</div>
+        <div style="font-size: 14px; line-height: 1.75; color: #D0D5DD">이 리포트는 결론이 아니라 질문 목록이에요. 여기서 <strong style="font-weight: 600; color: #6BA9FF">결론 안 남</strong>으로 남은 것들을 실제 사람에게 물어야 검증이 됩니다.</div>
+      </div>
+      <button type="button" style="flex-shrink: 0; height: 46px; padding: 0 20px; font-size: 15px; font-weight: 600; color: #101828; background: #00E021; border: none; border-radius: 12px; cursor: pointer">물어볼 질문 뽑기</button>
+    </div>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 12px">
+      <div style="flex-grow: 1; font-size: 13px; line-height: 1.65; color: #667085">AI 페르소나 세 명과 나눈 대화를 정리한 내용이에요. 실제 고객 조사 결과가 아니고, 그대로 근거로 쓰기보다 <strong style="font-weight: 600; color: #475467">무엇을 확인해야 할지 추리는 용도</strong>로 보는 게 맞아요.</div>
+      <button type="button" style="height: 46px; padding: 0 18px; font-size: 14px; color: #344054; background: #FFFFFF; border: 1px solid #C8D1DC; border-radius: 12px; cursor: pointer">대화 이어가기</button>
+      <button type="button" style="height: 46px; padding: 0 20px; font-size: 14px; font-weight: 600; color: #FFFFFF; background: #0A57C4; border: none; border-radius: 12px; cursor: pointer">다른 타깃과 다시 해보기</button>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

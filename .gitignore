@@ -1,0 +1,81 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# env
+.env*.local
+.env
+
+# Python — 파인튜닝·평가 스크립트용 (docs/DECISIONS.md 7번)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+
+# 모델 가중치·체크포인트 — git 에 올리지 않는다
+*.ckpt
+*.safetensors
+*.gguf
+*.bin
+checkpoints/
+
+# 에디터·OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
