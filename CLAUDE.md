@@ -122,3 +122,13 @@ AI 쪽 규칙 상세: `docs/DECISIONS.md` 7절
 | `docs/HANDOFF.md` | 작업 이어받는 법 (복붙용 프롬프트) |
 | `design/screens/*.html` | 화면 6개 설계 원본 (마크업·스타일 참고용, 그대로 렌더되지 않음) |
 | `src/styles/tokens.css` | 색 변수 구현 |
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
