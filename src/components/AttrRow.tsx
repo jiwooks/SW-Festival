@@ -3,15 +3,21 @@ export function AttrRow({
   label,
   children,
   labelWidth = "w-21",
+  align = "baseline",
 }: {
   label: string;
   children: React.ReactNode;
   labelWidth?: string;
+  /** 값에 칩이 줄바꿈되며 들어가면 "start" 를 쓴다. 기본은 텍스트용 baseline. */
+  align?: "baseline" | "start";
 }) {
+  const start = align === "start";
   return (
-    <div className="flex items-baseline gap-2.5">
+    <div className={`flex gap-2.5 ${start ? "items-start" : "items-baseline"}`}>
       <div
-        className={`${labelWidth} shrink-0 font-mono text-[11px] tracking-[0.06em] text-muted`}
+        className={`${labelWidth} shrink-0 font-mono text-[11px] tracking-[0.06em] text-muted ${
+          start ? "pt-[5px]" : ""
+        }`}
       >
         {label}
       </div>
