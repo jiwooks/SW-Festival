@@ -47,6 +47,7 @@ design/
   README.md                 시안 읽는 법, 컴포넌트 분해안
 docs/
   DECISIONS.md              결정과 그 이유, 폐기한 안, 미결 사항
+  DESIGN.md                 색·타이포·레이아웃 토큰, 접근성, 언어 원칙
   HANDOFF.md                작업 이어받는 법 (복붙용 프롬프트)
 CLAUDE.md                   디자인·카피·접근성 규칙 (작업 전 필독)
 .env.example                필요한 환경변수 목록
