@@ -1,6 +1,6 @@
 # TargetTable
 
-> 레포 이름은 `SWFESTIVAL`이지만 서비스 이름은 **TargetTable(타깃테이블)**이다. (구 이름: Persona Studio — 코드·문구에 쓰지 않는다)
+> 레포 이름은 `SW-Festival`이지만 서비스 이름은 **TargetTable(타깃테이블)**이다. (구 이름: Persona Studio — 코드·문구에 쓰지 않는다)
 
 ## 한 줄 정의
 

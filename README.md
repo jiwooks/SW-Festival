@@ -9,7 +9,7 @@
 
 ```bash
 npm install
-cp .env.example .env.local   # ANTHROPIC_API_KEY 채우기
+cp .env.example .env.local   # LLM_BASE_URL 은 AI팀 엔드포인트가 정해지면 채운다
 npm run dev
 ```
 
