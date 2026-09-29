@@ -119,7 +119,7 @@ AI 쪽 규칙 상세: `docs/DECISIONS.md` 7절
 |---|---|
 | `docs/DECISIONS.md` | 배경, 고객, 화면별 확정 사항, 리포트 구성, 폐기한 안, LLM 로드맵 |
 | `docs/DESIGN.md` | 색·타이포·레이아웃 토큰, 접근성, 언어 원칙 |
-| `docs/HANDOFF.md` | 작업 이어받는 법 (복붙용 프롬프트) |
+| `docs/HANDOFF.md` | 합류·재개용 — 지금 상태와 다음 작업 순서 |
 | `design/screens/*.html` | 화면 6개 설계 원본 (마크업·스타일 참고용, 그대로 렌더되지 않음) |
 | `src/styles/tokens.css` | 색 변수 구현 |
 
