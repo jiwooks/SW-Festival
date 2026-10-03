@@ -44,34 +44,18 @@ next-env.d.ts
 .env*.local
 .env
 
-# Python — 파인튜닝·평가 스크립트용 (docs/DECISIONS.md 7번)
+# Python — 스크립트를 이 레포에 두게 될 경우
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-dist/
-*.egg-info/
-.eggs/
 .venv/
 venv/
-env/
-ENV/
 .pytest_cache/
 .ruff_cache/
-.mypy_cache/
-.ipynb_checkpoints/
-htmlcov/
-.tox/
-.coverage
-.coverage.*
 
 # 모델 가중치·체크포인트 — git 에 올리지 않는다
 *.ckpt
 *.safetensors
 *.gguf
-*.bin
 checkpoints/
 
 # 에디터·OS

@@ -30,12 +30,6 @@ export interface IdeaSummary {
   likelyAudience: string;
 }
 
-/** 타깃 카드에 나란히 비교되는 값. 항목 이름도 사용자가 바꿀 수 있다. */
-export interface PersonaAttr {
-  label: string;
-  value: string;
-}
-
 export type PersonaSource = "recommended" | "edited" | "custom";
 
 /** 페르소나 색은 5개 슬롯만 쓴다. 파랑·초록은 브랜드색이라 쓰지 않는다. */
@@ -47,17 +41,27 @@ export interface Persona {
   age?: number;
   gender?: string;
   occupation?: string;
-  /** 요즘 상황 — 2줄 정도 */
+  /**
+   * 요즘 상황 — 2~3줄. 카드에서 이 사람이 누구인지 잡아주는 본문이다.
+   * 직업·마감·주변 사람처럼 구체적인 정황이 들어가야 대화가 뻔해지지 않는다.
+   */
   situation: string;
-  /** 비교 가능한 값 3개 (인터뷰 경험 / 급한 정도 / 쓸 수 있는 돈 등) */
-  attrs: PersonaAttr[];
-  /** 지금 쓰는 대안 */
-  currentTools: string[];
-  /** 막히는 지점 — 비어 있으면 대화에서 반대할 근거가 없어진다 */
-  frictions: string[];
-  /** 이 사람이 할 법한 말 한 줄 */
+  /** 관심사 — 짧은 키워드. 설득 포인트가 여기서 나온다 */
+  interests: string[];
+  /**
+   * 걱정되는 점 — 짧은 키워드.
+   * 비어 있으면 대화에서 반대할 근거가 없어 무조건 호의적으로 답한다.
+   * 최소 1개는 채운다.
+   */
+  worries: string[];
+  /**
+   * 사용자가 자유롭게 덧붙인 설명. 카드에는 보이지 않고 대화에만 반영된다.
+   * 말투·성격·돈과 시간 사정·과거에 겪은 일 등.
+   */
+  notes?: string;
+  /** 이 사람이 할 법한 말 한 줄. 추천 카드에만 쓰고, 직접 만들 때는 입력받지 않는다 */
   quote?: string;
-  /** 이 사람에게 확인할 수 있는 것 */
+  /** 이 사람에게 물어볼 것 — 카드에는 '물어볼 것'으로 표시한다 */
   checkpoint?: string;
   /** 왜 추천했는지 (AI 판단. 사용자가 만든 경우 비어 있다) */
   reason?: string;

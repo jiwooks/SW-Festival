@@ -12,7 +12,7 @@ export default function LandingPage() {
     <main className="mx-auto flex min-h-dvh max-w-[1440px] flex-col justify-center px-20">
       <div className="flex items-center gap-2.5">
         <Logo size={32} />
-        <span className="text-xl font-semibold tracking-[-0.01em]">TargetTable</span>
+        <span className="text-xl font-semibold tracking-[-0.01em]">Soul</span>
       </div>
 
       <h1 className="mt-8 text-[52px] font-bold leading-[1.24] tracking-[-0.028em]">
