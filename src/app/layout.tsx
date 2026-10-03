@@ -19,8 +19,8 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "TargetTable — 첫 고객 인터뷰 전에, 리허설부터",
-    template: "%s · TargetTable",
+    default: "Soul — 첫 고객 인터뷰 전에, 리허설부터",
+    template: "%s · Soul",
   },
   description:
     "아이디어를 적으면 타깃 후보를 찾아주고, 여러 페르소나가 한 방에서 서로 듣고 반박하며 대화합니다. 인터뷰를 대신하지 않고, 앞뒤를 채웁니다.",

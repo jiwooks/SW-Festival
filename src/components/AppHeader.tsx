@@ -10,7 +10,13 @@ export const STEPS = [
 
 export type StepNo = (typeof STEPS)[number]["no"];
 
-/** 과녁과 원탁은 위에서 보면 같은 모양이다. 초록 점은 항상 정북. */
+/**
+ * 가운데 원 하나에 둘러앉은 점 다섯 개. 한 자리에 모인 사람들을 뜻한다.
+ * 위쪽 한 점만 초록 — 의견이 모이는 순간. 초록 점은 항상 정북.
+ *
+ * TODO: 이름을 Soul 로 바꾸면서 마크의 원래 설명(과녁+원탁 말놀이)이 더는
+ *       맞지 않는다. 마크를 유지할지 다시 그릴지 정해야 한다.
+ */
 export function Logo({ size = 26 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -36,7 +42,7 @@ export function AppHeader({
     <header className="flex h-16 shrink-0 items-center gap-9 border-b border-line bg-base px-8">
       <Link href="/" className="flex items-center gap-2.5">
         <Logo />
-        <span className="text-[17px] font-semibold tracking-[-0.01em]">TargetTable</span>
+        <span className="text-[17px] font-semibold tracking-[-0.01em]">Soul</span>
       </Link>
 
       <nav aria-label="진행 단계" className="flex grow items-center gap-1.5">
