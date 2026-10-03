@@ -189,6 +189,8 @@ npm run build
 
 ## 5. 자주 틀리는 것
 
+- **`text-base` 를 쓰지 않는다.** 흰색 토큰 이름이 `--color-base` 라서 v4 에서 `text-base` 가 16px 이 아니라
+  **글자색 흰색**이 된다. 16px 은 `text-[16px]` 로 쓴다. (카드 이름·03 이름·01·02-1 섹션 제목이 흰 글자로 안 보이던 원인)
 - **전역 CSS 규칙은 `@layer base` 안에 둔다.** 레이어 밖 규칙은 v4 에서 유틸리티보다 우선한다.
   `a { color }` 가 밖에 있어서 파란 버튼(Link)의 글자가 파란색으로 안 보이던 적이 있다 (02 "이 세 명으로 진행하기")
 - **Next 16 의 `error.tsx` 는 `reset` 이 아니라 `retry` 를 받는다.** 예전 글을 따르지 말고 `node_modules/next/dist/docs` 를 본다

@@ -127,7 +127,7 @@ export function CompareClient() {
               >
                 <PersonaAvatar name={p.name} color={p.color} size="lg" />
                 <div className="flex grow flex-col gap-px">
-                  <p className="text-base font-semibold">{p.name}</p>
+                  <p className="text-[16px] font-semibold">{p.name}</p>
                   <p className="text-xs text-muted">
                     {[p.age, p.gender, p.occupation].filter(Boolean).join(" · ")}
                   </p>

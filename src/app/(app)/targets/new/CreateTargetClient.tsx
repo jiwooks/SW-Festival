@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { EditableChips } from "@/components/EditableChips";
 import { PersonaCard } from "@/components/PersonaCard";
+import { saveTarget, useTargets } from "@/lib/targetStore";
 import type { Persona } from "@/lib/types";
 
 const LABEL = "w-24 shrink-0 font-mono text-[11px] tracking-[0.06em] text-ink-3";
@@ -22,25 +24,53 @@ const GENDER_SHORT: Record<string, string | undefined> = {
   "밝히지 않음": undefined,
 };
 
+const GENDER_LONG: Record<string, string> = { 여: "여성", 남: "남성" };
+
 function Required() {
   return <span className="text-conflict-fg">*</span>;
 }
 
-export function CreateTargetClient() {
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("여성");
-  const [occupation, setOccupation] = useState("");
-  const [situation, setSituation] = useState("");
-  const [interests, setInterests] = useState<string[]>([]);
-  const [worries, setWorries] = useState<string[]>([]);
-  const [notes, setNotes] = useState("");
+/**
+ * 02-1. editId 가 있으면 그 사람을 고치는 화면(02 카드의 "고치기"), 없으면 새로 만드는 화면.
+ * 고칠 사람은 브라우저 저장소에서 읽는데 서버 렌더에는 추천 원본이 들어간다. 읽은 값이 다르면
+ * key 가 바뀌어 폼이 그 값으로 다시 열린다 — 입력 중인 값을 effect 로 덮어쓰지 않기 위해서다.
+ */
+export function CreateTargetClient({ editId }: { editId?: string }) {
+  const targets = useTargets();
+  const editing = editId ? targets.find((p) => p.id === editId) : undefined;
+  if (editId && !editing) {
+    return (
+      <main className="flex grow flex-col items-center justify-center gap-4 px-20">
+        <p className="text-[15px] text-ink-3">고칠 사람을 찾지 못했어요. 목록에서 다시 골라 주세요.</p>
+        <Link href="/targets" className={SECONDARY}>
+          타깃 고르기로 돌아가기
+        </Link>
+      </main>
+    );
+  }
+  return <TargetForm key={editing ? JSON.stringify(editing) : "new"} initial={editing} />;
+}
+
+function TargetForm({ initial }: { initial?: Persona }) {
+  const router = useRouter();
+  const [name, setName] = useState(initial?.name ?? "");
+  const [age, setAge] = useState(initial?.age ? String(initial.age) : "");
+  const [gender, setGender] = useState(
+    initial ? (initial.gender ? (GENDER_LONG[initial.gender] ?? "밝히지 않음") : "밝히지 않음") : "여성",
+  );
+  const [occupation, setOccupation] = useState(initial?.occupation ?? "");
+  const [situation, setSituation] = useState(initial?.situation ?? "");
+  const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
+  const [worries, setWorries] = useState<string[]>(initial?.worries ?? []);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const ready = name.trim() !== "" && situation.trim() !== "";
 
   // 미리보기는 추천 카드와 완전히 같은 컴포넌트를 쓴다. 저장 뒤 모습이 그대로 보여야 한다.
+  // 고치는 중이면 카드에만 있는 값(한마디·물어볼 것·고른 이유·색)은 그대로 둔다
   const preview: Persona = {
-    id: "preview",
+    ...initial,
+    id: initial?.id ?? "preview",
     name: name.trim(),
     age: age.trim() ? Number(age) : undefined,
     gender: GENDER_SHORT[gender],
@@ -49,8 +79,14 @@ export function CreateTargetClient() {
     interests,
     worries,
     notes: notes.trim() || undefined,
-    color: 5,
-    source: "custom",
+    color: initial?.color ?? 5,
+    source: initial?.source ?? "custom",
+  };
+
+  const save = () => {
+    if (!ready) return;
+    saveTarget(preview);
+    router.push("/targets");
   };
 
   return (
@@ -78,11 +114,12 @@ export function CreateTargetClient() {
               타깃 고르기로 돌아가기
             </Link>
             <h1 className="text-[28px] font-bold leading-[1.38] tracking-[-0.022em]">
-              만나고 싶은 사람을 직접 만들어보세요
+              {initial ? `${initial.name}님을 고쳐요` : "만나고 싶은 사람을 직접 만들어보세요"}
             </h1>
             <p className="text-[15px] leading-[1.7] text-ink-3">
-              이미 아는 고객이 있다면 그 사람을 그대로 넣어도 돼요. 이름과 요즘 상황만
-              쓰면 나머지는 채워드려요.
+              {initial
+                ? "추천받은 내용을 내가 아는 고객에 맞게 바꿔요. 고친 내용대로 대화에서 말해요."
+                : "이미 아는 고객이 있다면 그 사람을 그대로 넣어도 돼요. 이름과 요즘 상황만 쓰면 나머지는 채워드려요."}
             </p>
           </div>
           {/* TODO: 자료에서 만들기 — 업로드한 녹취·설문에서 뽑아내는 모드 */}
@@ -107,7 +144,7 @@ export function CreateTargetClient() {
         <div className="flex grow gap-[26px] overflow-hidden">
           <form className="flex w-[800px] shrink-0 flex-col gap-4 overflow-y-auto rounded-card border border-card bg-base px-[26px] py-[22px]">
             <div className="flex items-center gap-3">
-              <h2 className="grow text-base font-semibold">어떤 사람인가요</h2>
+              <h2 className="grow text-[16px] font-semibold">어떤 사람인가요</h2>
               {/* TODO: AI팀 엔드포인트 연결 후 빈 칸 채우기 */}
               <button
                 type="button"
@@ -309,19 +346,22 @@ export function CreateTargetClient() {
 
       <footer className="flex h-[82px] shrink-0 items-center gap-3 border-t border-line bg-base px-20">
         <p className="grow text-sm text-muted">
-          저장하면 추천받은 다섯 명과 같은 목록에 들어가요. 거기서 골라 대화를 시작하면
-          돼요.
+          {initial
+            ? worries.length === 0
+              ? "걱정이 비어 있어요. 이대로 저장하면 이 사람은 뭘 물어도 좋다고만 답해요."
+              : "저장하면 목록의 카드가 이 내용으로 바뀌어요. 이 브라우저에만 저장돼요."
+            : "저장하면 추천받은 다섯 명과 같은 목록에 들어가요. 거기서 골라 대화를 시작하면 돼요."}
         </p>
         <Link href="/targets" className={`${SECONDARY} h-[46px]`}>
           취소
         </Link>
-        {/* TODO: 저장 — 목록에 추가하고 /targets 로 돌아간다 */}
         <button
           type="button"
           disabled={!ready}
+          onClick={save}
           className="h-12 shrink-0 rounded-btn bg-brand px-6 text-[15px] font-semibold text-white disabled:bg-bubble disabled:text-muted"
         >
-          목록에 추가하기
+          {initial ? "고친 내용 저장" : "목록에 추가하기"}
         </button>
       </footer>
     </>

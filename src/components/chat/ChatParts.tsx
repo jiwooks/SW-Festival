@@ -213,7 +213,7 @@ export function ChatRoomHeader({
         ))}
       </div>
       <div className="flex grow flex-col gap-0.5">
-        <h1 className="text-base font-semibold">
+        <h1 className="text-[16px] font-semibold">
           {personas.length === 3 ? "세 명과" : `${personas.length}명과`} 함께 이야기하는 중
         </h1>
         <p className="font-mono text-[11px] tracking-[0.1em] text-muted">

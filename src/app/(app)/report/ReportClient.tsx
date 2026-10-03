@@ -179,7 +179,7 @@ export function ReportClient({ report }: { report: Report }) {
         <div className="flex flex-col gap-3.5 rounded-card border border-card bg-base px-7 py-6">
           <p className="font-mono text-[11px] font-semibold tracking-[0.14em] text-brand">결론</p>
           <p className="max-w-[1000px] text-xl font-semibold leading-[1.6] tracking-[-0.015em]">{report.headline}</p>
-          <p className="max-w-[1000px] text-base leading-[1.8] text-ink-2">{report.summary}</p>
+          <p className="max-w-[1000px] text-[16px] leading-[1.8] text-ink-2">{report.summary}</p>
         </div>
       </section>
 
@@ -250,7 +250,7 @@ export function ReportClient({ report }: { report: Report }) {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div className="flex grow flex-col gap-[5px]">
-                <h3 className="text-base font-semibold">{x.title}</h3>
+                <h3 className="text-[16px] font-semibold">{x.title}</h3>
                 <p className="max-w-[940px] text-sm leading-[1.8] text-ink-2">{x.body}</p>
                 <p className="font-mono text-[11px] tracking-[0.06em] text-muted">{x.source}</p>
               </div>
@@ -261,7 +261,7 @@ export function ReportClient({ report }: { report: Report }) {
 
       <div className="grid grid-cols-3 gap-[18px]">
         <section className="flex flex-col gap-3 rounded-card border border-card bg-base px-[22px] py-5">
-          <h2 className="text-base font-semibold">입장이 바뀐 지점</h2>
+          <h2 className="text-[16px] font-semibold">입장이 바뀐 지점</h2>
           {report.stanceChanges.length === 0 ? (
             <p className="text-sm leading-[1.75] text-ink-2">입장을 바꾼 사람은 없었다.</p>
           ) : (
@@ -301,7 +301,7 @@ export function ReportClient({ report }: { report: Report }) {
         </section>
 
         <section className="flex flex-col gap-3 rounded-card border border-card bg-base px-[22px] py-5">
-          <h2 className="text-base font-semibold">이어서 물어볼 지점</h2>
+          <h2 className="text-[16px] font-semibold">이어서 물어볼 지점</h2>
           <p className="text-sm leading-[1.75] text-ink-2">이번 대화에서 새로 생긴 질문이다. 누르면 그 자리에서 이어서 물어본다.</p>
           <div className="flex flex-col gap-2">
             {report.followUps.map((f) => {
@@ -334,7 +334,7 @@ export function ReportClient({ report }: { report: Report }) {
         </section>
 
         <section className="flex flex-col gap-3 rounded-card border border-card bg-base px-[22px] py-5">
-          <h2 className="text-base font-semibold">확인하지 못한 것</h2>
+          <h2 className="text-[16px] font-semibold">확인하지 못한 것</h2>
           <ul className="flex flex-col gap-[9px]">
             {report.openQuestions.map((q) => (
               <li key={q} className="flex items-start gap-[9px]">

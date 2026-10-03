@@ -158,7 +158,7 @@ export function DmPanel({
         <div className="flex items-center gap-3 border-b border-line px-[22px] py-[18px]">
           <PersonaAvatar name={persona.name} color={persona.color} size="lg" />
           <div className="flex grow flex-col gap-0.5">
-            <p className="text-base font-semibold">{persona.name}</p>
+            <p className="text-[16px] font-semibold">{persona.name}</p>
             <p className="font-mono text-[11px] tracking-[0.1em] text-muted">둘이서만</p>
           </div>
           <button

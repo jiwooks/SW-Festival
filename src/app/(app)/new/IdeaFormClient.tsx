@@ -261,7 +261,7 @@ export function IdeaFormClient() {
         <section className="flex flex-col gap-[18px] rounded-card border border-card bg-base px-[26px] py-[22px]">
           <div className="flex items-center gap-5">
             <div className="flex grow flex-col gap-[5px]">
-              <h2 className="text-base font-semibold">실현 계획 · 자료</h2>
+              <h2 className="text-[16px] font-semibold">실현 계획 · 자료</h2>
               <p className="text-sm leading-relaxed text-ink-3">
                 사업화 계획과 본인 역량은 선택이에요. 이미 만든 기획서나 설문 결과가
                 있으면 올려주세요.
