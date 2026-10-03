@@ -168,18 +168,45 @@ export interface StanceChange {
   quote?: string;
 }
 
+/** 아이디어 입력에 없던, 대화에서 새로 나온 이야기 */
+export interface Insight {
+  title: string;
+  /** 평서체. 무엇이 새로 보였고 왜 의미가 있는지 */
+  body: string;
+  /** 근거 위치 — 예: "쟁점 02 · 정서윤" */
+  source: string;
+}
+
+/** 이 대화를 더 파는 질문. 누르면 04 로 돌아가 바로 묻는다 ("실제로 만나서 물어볼 것"과 다르다) */
+export interface FollowUp {
+  /** 특정 사람에게 묻는다. 비우면 세 명 모두에게 */
+  personaId?: string;
+  question: string;
+}
+
+/**
+ * 리포트 순서 (CLAUDE.md 9절 — 05): 결론 → 숫자 → 쟁점 → 새로 얻은 인사이트
+ * → 입장이 바뀐 지점 / 이어서 물어볼 지점 / 확인하지 못한 것 → 실제로 만나서 물어볼 것.
+ * 본문은 평서체(~했다/~이다)로 쓴다. 숫자는 화면에서 이 데이터로 센다.
+ */
 export interface Report {
   id: string;
   ideaId: string;
+  personaIds: string[];
+  /** 결론 한 문장 (제목 자리에 넣지 않는다. 제목은 "분석 리포트") */
   headline: string;
   summary: string;
   rounds: number;
   messageCount: number;
   issues: Issue[];
   stanceChanges: StanceChange[];
-  /** 아이디어 입력에 없던, 대화에서 새로 나온 이야기 */
-  surprises: string[];
-  /** 이번 대화로는 알 수 없는 것. 비우지 않는다. */
+  insights: Insight[];
+  followUps: FollowUp[];
+  /** 이번 대화로는 알 수 없는 것. 비우지 않는다 — 전부 답한 척하는 리포트가 가장 의심받는다 */
   openQuestions: string[];
+  /** 실제로 만나서 물어볼 것 — 누구를 */
+  meetWho: string[];
+  /** 실제로 만나서 물어볼 것 — 무엇을. 과거 행동을 묻는 질문 */
+  meetQuestions: string[];
   createdAt: string;
 }

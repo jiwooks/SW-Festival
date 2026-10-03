@@ -43,6 +43,9 @@ LLM 엔드포인트가 비어 있어도 화면은 돈다 — 더미 데이터로
 | 07 로딩 — 타깃 | `/states/loading-targets` | `(app)/states/loading-targets/LoadingTargetsClient.tsx` |
 | 07-1 로딩 — 발화 대기 | `/states/loading-chat` | `(app)/states/loading-chat/LoadingChatClient.tsx` |
 | 07-2 로딩 — 리포트 | `/states/loading-report` | `(app)/states/loading-report/LoadingReportClient.tsx` |
+| 04 대화 + 07-1 + 08 끊김 | `/chat` | `(app)/chat/ChatClient.tsx` |
+| 04-1 1:1 패널 | `/chat` (따로 버튼) | `(app)/chat/DmPanel.tsx` |
+| 05 리포트 + 07-2 | `/report` | `(app)/report/ReportClient.tsx` |
 | 랜딩 | `/` | `(landing)/page.tsx` |
 
 **상태 화면(06·07·08)은 `/states` 에서 한 번에 열어볼 수 있다.** 화면 사이 데이터가 아직 안 넘어가서
@@ -57,19 +60,28 @@ LLM 엔드포인트가 비어 있어도 화면은 돈다 — 더미 데이터로
 | `CenteredState` `PRIMARY_BUTTON` `SECONDARY_BUTTON` | `components/states/CenteredState.tsx` | 가운데 정렬 상태 화면 틀 |
 | `useStepTicker` | `components/states/useStepTicker.ts` | **미리보기 전용.** 실제 화면은 서버가 알려준 단계를 넘긴다 |
 
-### 남은 화면 — 이 순서를 권한다
+### 남은 화면
 
-| 순서 | 시안 | 경로 | 메모 |
-|---|---|---|---|
-| 1 | `04-chat.html` | `/chat` | **제일 무겁다.** 상태 관리 + 스트리밍. 07-1 조각(`ChatParts`)을 그대로 쓴다 |
-| 2 | `04-1-chat-dm.html` | `/chat` | 1:1 오른쪽 패널. 04 와 같은 화면 |
-| 3 | `05-report.html` | `/report` | 306줄, 가장 복잡. 진입 전 07-2 를 띄운다 |
+**12개 시안 모두 코드로 옮겼다.** 남은 건 화면이 아니라 연결이다 (아래 "아직 없는 것").
 
-06·07·08 은 끝났다 (위 표). 04·05 에서 "로딩·에러는 뭘 보여주지?"는 이미 정해져 있다.
+### 04 대화의 데이터 흐름 — AI팀 엔드포인트를 붙일 자리
+
+```
+ChatClient ──POST /api/chat (ChatRequest)──▶ route.ts (스텁 오케스트레이터) ──▶ [AI팀 엔드포인트]
+           ◀──SSE ChatEvent: round · start · token · end(concern) · suggestions · error · done──
+```
+
+- 계약은 `lib/types.ts` 의 `ChatRequest` / `ChatEvent`. **엔드포인트가 붙어도 이 모양은 유지**한다
+- `route.ts` 가 순서를 정한다: 1라운드는 고른 순서, 그 뒤엔 가장 많이 걸려한(concern) 사람 먼저, `@이름` 이면 그 사람만, 1:1 은 그 사람만
+- 대사는 지금 `mock.ts` 대본(시안과 같은 장면)과 카드(관심사·걱정)로 만든 문장이다. `line()` 자리를 엔드포인트 호출로 바꾸면 된다
+- `concern` 태깅은 대화 중에 한다. 04 의 "○○님이 가장 많이 걸려했어요"와 04-1 의 "걸려한 부분" 인용이 이걸 센다 — 리포트 때 한 번에 뽑지 않는다 (DECISIONS 7절)
+- `/chat?simulateError=1` 이면 두 번째 사람이 말하다 끊긴다 — 08 에러 확인용
+- `/chat?ask=...` 로 들어오면 입력창이 채워져 있다 — 05 "이어서 물어볼 지점"이 쓴다
 
 ### 아직 없는 것
 
-- `src/app/api/chat/route.ts` 는 스텁이다. 실제 LLM 호출이 없다
+- `src/app/api/chat/route.ts` 는 스텁 오케스트레이터다. 순서·라운드·concern 태깅은 동작하지만 실제 LLM 호출이 없다
+- 리포트를 만드는 엔드포인트가 없다. 05 는 `MOCK_REPORT` 를 그린다 (숫자·뱃지 문구는 데이터로 계산)
 - 데이터 저장이 없다. 01 입력만 브라우저에 임시 저장된다
 - 화면 사이 데이터가 안 넘어간다. 각 화면이 `src/lib/mock.ts` 를 직접 읽는다
   (그래서 06·07·08 은 실제 흐름에 아직 안 붙어 있다 — `/states` 로 확인)

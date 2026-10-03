@@ -32,7 +32,7 @@ const USER = "user";
  * 1:1 패널이 열려 있는 동안 단체 대화는 멈추고, 멈췄다는 것을 화면에 표시한다.
  * TODO: 02·03 에서 고른 세 명이 넘어오면 MOCK_PRESELECTED 대신 그걸 쓴다.
  */
-export function ChatClient() {
+export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
   const personas = useMemo(
     () => MOCK_PRESELECTED.map((id) => MOCK_PERSONAS.find((p) => p.id === id)).filter((p): p is Persona => !!p),
     [],
@@ -48,7 +48,8 @@ export function ChatClient() {
   const [failed, setFailed] = useState<{ personaId?: string } | null>(null);
   const [stopped, setStopped] = useState(false);
   const [dmId, setDmId] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
+  // 05 리포트의 "이어서 물어볼 지점"을 누르고 오면 그 질문이 입력창에 채워져 있다
+  const [draft, setDraft] = useState(initialDraft);
   const [questionAt, setQuestionAt] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
