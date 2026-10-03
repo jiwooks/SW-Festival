@@ -171,3 +171,119 @@ export function ChatComposer({
     </form>
   );
 }
+
+/** 사용자 말풍선 (오른쪽, 브랜드색). compact 는 1:1 패널용 작은 크기 */
+export function UserMessage({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {
+  return (
+    <div className={`flex flex-col gap-[5px] self-end ${compact ? "max-w-[330px]" : "max-w-[580px]"}`}>
+      <p className={`self-end font-semibold text-muted ${compact ? "text-[11px]" : "text-xs"}`}>나</p>
+      <div
+        className={`bg-brand text-white ${
+          compact
+            ? "rounded-[12px_4px_12px_12px] px-3.5 py-[11px] text-sm leading-[1.7]"
+            : "rounded-[14px_4px_14px_14px] px-4 py-[13px] text-[15px] leading-[1.72]"
+        }`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 단체 대화 머리: 겹친 아바타 · 제목 · 이름과 라운드 · "따로" 버튼(1:1 열기).
+ * 1:1 은 상단 참가자 칩을 눌러 오른쪽 패널로 연다 (DECISIONS.md 04 B안).
+ */
+export function ChatRoomHeader({
+  personas,
+  round,
+  onOpenDm,
+}: {
+  personas: { id: string; name: string; color: PersonaColor }[];
+  round: number;
+  onOpenDm: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3.5 pb-1">
+      <div className="flex shrink-0" aria-hidden="true">
+        {personas.map((p, i) => (
+          <span key={p.id} className={`rounded-full border-2 border-alt ${i > 0 ? "-ml-[9px]" : ""}`}>
+            <PersonaAvatar name={p.name} color={p.color} />
+          </span>
+        ))}
+      </div>
+      <div className="flex grow flex-col gap-0.5">
+        <h1 className="text-base font-semibold">
+          {personas.length === 3 ? "세 명과" : `${personas.length}명과`} 함께 이야기하는 중
+        </h1>
+        <p className="font-mono text-[11px] tracking-[0.1em] text-muted">
+          {personas.map((p) => p.name).join(" · ")} — ROUND {String(round).padStart(2, "0")}
+        </p>
+      </div>
+      <div className="flex items-center gap-[7px]">
+        <span className="mr-0.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-muted">따로</span>
+        {personas.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onOpenDm(p.id)}
+            aria-label={`${p.name}와 따로 이야기`}
+            className="flex size-11 items-center justify-center rounded-full"
+          >
+            <span className="rounded-full border-2 border-base">
+              <PersonaAvatar name={p.name} color={p.color} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** 입력창 위 "물어볼 질문" 칩. 과거 행동을 묻는 질문만 넣는다. */
+export function QuestionChips({
+  questions,
+  onPick,
+  onMore,
+}: {
+  questions: string[];
+  onPick: (q: string) => void;
+  onMore: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="shrink-0 font-mono text-[11px] font-medium tracking-[0.12em] text-muted">물어볼 질문</span>
+      {questions.map((q) => (
+        <button
+          key={q}
+          type="button"
+          onClick={() => onPick(q)}
+          className="h-11 truncate rounded-chip border border-input-border bg-base px-[13px] text-[13px] text-ink-2"
+        >
+          {q}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onMore}
+        aria-label="다른 질문 보기"
+        className="flex size-11 shrink-0 items-center justify-center rounded-chip border border-input-border bg-base"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--text-muted)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12a9 9 0 1 1-3-6.7" />
+          <path d="M21 4v5h-5" />
+        </svg>
+      </button>
+    </div>
+  );
+}
