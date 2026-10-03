@@ -79,8 +79,12 @@ body {
   color: var(--text);
 }
 
-a { color: var(--brand); }
-a:hover { color: var(--brand-hover); }
+/* 링크 기본색. @layer base 안에 둬야 Tailwind 유틸리티(text-white 등)가 이긴다.
+   레이어 밖에 두면 v4 에서는 유틸리티보다 우선해서, 파란 버튼(Link)의 글자가 파란색이 되어 안 보인다. */
+@layer base {
+  a { color: var(--brand); }
+  a:hover { color: var(--brand-hover); }
+}
 
 /* eyebrow / 라벨 / 숫자 — mono */
 .eyebrow {

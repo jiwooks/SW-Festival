@@ -17,16 +17,19 @@ export type StepNo = (typeof STEPS)[number]["no"];
  * TODO: 이름을 Soul 로 바꾸면서 마크의 원래 설명(과녁+원탁 말놀이)이 더는
  *       맞지 않는다. 마크를 유지할지 다시 그릴지 정해야 한다.
  */
-export function Logo({ size = 26 }: { size?: number }) {
+export function Logo({ size = 26, muted = false }: { size?: number; muted?: boolean }) {
+  // muted: 빈 상태(06)처럼 "아직 아무것도 없음"을 보여줄 때 회색 한 톤으로 그린다
+  const main = muted ? "var(--border-btn)" : "var(--brand)";
+  const top = muted ? "var(--border-btn)" : "var(--green-deep)";
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="6.5" stroke="var(--brand)" strokeWidth="2.2" />
-      <circle cx="16" cy="16" r="2.4" fill="var(--brand)" />
-      <circle cx="16" cy="4" r="1.9" fill="var(--green-deep)" />
-      <circle cx="27.4" cy="12.3" r="1.9" fill="var(--brand)" />
-      <circle cx="23.1" cy="25.7" r="1.9" fill="var(--brand)" />
-      <circle cx="8.9" cy="25.7" r="1.9" fill="var(--brand)" />
-      <circle cx="4.6" cy="12.3" r="1.9" fill="var(--brand)" />
+      <circle cx="16" cy="16" r="6.5" stroke={main} strokeWidth="2.2" />
+      <circle cx="16" cy="16" r="2.4" fill={main} />
+      <circle cx="16" cy="4" r="1.9" fill={top} />
+      <circle cx="27.4" cy="12.3" r="1.9" fill={main} />
+      <circle cx="23.1" cy="25.7" r="1.9" fill={main} />
+      <circle cx="8.9" cy="25.7" r="1.9" fill={main} />
+      <circle cx="4.6" cy="12.3" r="1.9" fill={main} />
     </svg>
   );
 }
@@ -40,7 +43,7 @@ export function AppHeader({
 }) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-9 border-b border-line bg-base px-8">
-      <Link href="/" className="flex items-center gap-2.5">
+      <Link href="/" className="flex items-center gap-2.5 text-ink hover:text-ink">
         <Logo />
         <span className="text-[17px] font-semibold tracking-[-0.01em]">Soul</span>
       </Link>

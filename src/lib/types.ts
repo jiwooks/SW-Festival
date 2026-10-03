@@ -91,7 +91,52 @@ export interface Message {
   text: string;
   round: number;
   createdAt: string;
+  /**
+   * 이 발언이 걸리는 지점(걱정·반대)을 드러냈는지. 오케스트레이터가 대화 중에 태깅한다.
+   * 리포트 생성 때 한 번에 뽑으면 자주 틀려서 미리 표시해 둔다 (DECISIONS.md 7절).
+   * 04 의 "○○님이 가장 많이 걸려했어요"와 04-1 의 "단체 대화에서 걸려한 부분"이 이걸 센다.
+   */
+  concern?: boolean;
 }
+
+/** 라운드 구조: 첫 반응 → 상호 토론 → 자유 질문 (DECISIONS.md 04) */
+export const ROUND_LABELS: Record<number, string> = {
+  1: "처음 들은 생각",
+  2: "서로 이야기 나누기",
+  3: "자유 질문",
+};
+export const roundLabel = (round: number) => ROUND_LABELS[Math.min(round, 3)];
+
+/**
+ * POST /api/chat 요청. AI팀 엔드포인트가 붙어도 웹 쪽 계약은 이 모양을 유지한다.
+ * - kind "round": 다음 라운드를 진행한다 (첫 진입 = 1라운드, "이어서 더 듣기" = 다음 라운드)
+ * - kind "message": 사용자가 말했다. targetId 가 있으면(@이름) 그 사람만 답한다
+ * 1:1(dm)은 단체방과 컨텍스트를 나눈다 — history 에 그 방 메시지만 보낸다 (DECISIONS.md 04)
+ */
+export interface ChatRequest {
+  roomType: RoomType;
+  kind: "round" | "message";
+  personaIds: string[];
+  round: number;
+  history: Pick<Message, "speakerId" | "text" | "round" | "concern">[];
+  message?: string;
+  targetId?: string;
+}
+
+/**
+ * /api/chat 이 SSE(`data: {...}\n\n`)로 흘려보내는 이벤트.
+ * 페르소나는 순차로 말하므로 한 사람씩 start → token… → end 가 이어진다.
+ */
+export type ChatEvent =
+  | { type: "round"; round: number }
+  /** 지금 말할 사람과 그 다음 사람 (07-1 "다음" 표시용) */
+  | { type: "start"; personaId: string; nextId?: string }
+  | { type: "token"; personaId: string; text: string }
+  | { type: "end"; personaId: string; concern: boolean }
+  /** 1:1 끝에 "이어서 물어볼 만한 것" */
+  | { type: "suggestions"; items: string[] }
+  | { type: "error"; personaId?: string; message: string }
+  | { type: "done" };
 
 /** 리포트는 쟁점 단위로 정리한다. */
 export type Stance = "agree" | "conditional" | "disagree" | "hold";
@@ -123,18 +168,45 @@ export interface StanceChange {
   quote?: string;
 }
 
+/** 아이디어 입력에 없던, 대화에서 새로 나온 이야기 */
+export interface Insight {
+  title: string;
+  /** 평서체. 무엇이 새로 보였고 왜 의미가 있는지 */
+  body: string;
+  /** 근거 위치 — 예: "쟁점 02 · 정서윤" */
+  source: string;
+}
+
+/** 이 대화를 더 파는 질문. 누르면 04 로 돌아가 바로 묻는다 ("실제로 만나서 물어볼 것"과 다르다) */
+export interface FollowUp {
+  /** 특정 사람에게 묻는다. 비우면 세 명 모두에게 */
+  personaId?: string;
+  question: string;
+}
+
+/**
+ * 리포트 순서 (CLAUDE.md 9절 — 05): 결론 → 숫자 → 쟁점 → 새로 얻은 인사이트
+ * → 입장이 바뀐 지점 / 이어서 물어볼 지점 / 확인하지 못한 것 → 실제로 만나서 물어볼 것.
+ * 본문은 평서체(~했다/~이다)로 쓴다. 숫자는 화면에서 이 데이터로 센다.
+ */
 export interface Report {
   id: string;
   ideaId: string;
+  personaIds: string[];
+  /** 결론 한 문장 (제목 자리에 넣지 않는다. 제목은 "분석 리포트") */
   headline: string;
   summary: string;
   rounds: number;
   messageCount: number;
   issues: Issue[];
   stanceChanges: StanceChange[];
-  /** 아이디어 입력에 없던, 대화에서 새로 나온 이야기 */
-  surprises: string[];
-  /** 이번 대화로는 알 수 없는 것. 비우지 않는다. */
+  insights: Insight[];
+  followUps: FollowUp[];
+  /** 이번 대화로는 알 수 없는 것. 비우지 않는다 — 전부 답한 척하는 리포트가 가장 의심받는다 */
   openQuestions: string[];
+  /** 실제로 만나서 물어볼 것 — 누구를 */
+  meetWho: string[];
+  /** 실제로 만나서 물어볼 것 — 무엇을. 과거 행동을 묻는 질문 */
+  meetQuestions: string[];
   createdAt: string;
 }
