@@ -37,29 +37,42 @@ LLM 엔드포인트가 비어 있어도 화면은 돈다 — 더미 데이터로
 | 02 타깃 추천·선택 | `/targets` | `(app)/targets/TargetsClient.tsx` |
 | 02-1 직접 만들기 | `/targets/new` | `(app)/targets/new/CreateTargetClient.tsx` |
 | 03 한눈에 보기 | `/compare` | `(app)/compare/CompareClient.tsx` |
+| 06 빈 상태 | `/states/empty` | `(app)/states/empty/page.tsx` |
+| 08 에러 (대화 끊김) | `/states/error` | `(app)/states/error/ChatErrorClient.tsx` |
+| 08 에러 (그 밖의 오류) | 에러 경계 | `(app)/error.tsx` — 제품 화면 어디서든 예외가 나면 뜬다 |
+| 07 로딩 — 타깃 | `/states/loading-targets` | `(app)/states/loading-targets/LoadingTargetsClient.tsx` |
+| 07-1 로딩 — 발화 대기 | `/states/loading-chat` | `(app)/states/loading-chat/LoadingChatClient.tsx` |
+| 07-2 로딩 — 리포트 | `/states/loading-report` | `(app)/states/loading-report/LoadingReportClient.tsx` |
 | 랜딩 | `/` | `(landing)/page.tsx` |
+
+**상태 화면(06·07·08)은 `/states` 에서 한 번에 열어볼 수 있다.** 화면 사이 데이터가 아직 안 넘어가서
+실제 흐름에서는 안 뜬다. 04·05 를 만들 때 아래 조각을 가져다 붙이면 된다.
+
+| 조각 | 위치 | 04·05 에서 쓰는 자리 |
+|---|---|---|
+| `PersonaMessage` `TypingMessage` `NextSpeaker` `RoundDivider` `ChatComposer` | `components/chat/ChatParts.tsx` | 04 대화 본문 그대로. 07-1 은 04 의 "답하는 중" 상태다 |
+| `ProgressPanel` `StepProgress` | `components/states/StepProgress.tsx` | 01 → 02 전환, 05 진입 전 |
+| `PersonaCardSkeleton` `ReportSkeleton` `Bar` | `components/states/Skeleton.tsx` | 02 카드·05 리포트 자리 미리 그리기 |
+| `ErrorState` `remainingLabel` | `components/states/ErrorState.tsx` | 04 스트리밍이 끊겼을 때 — 끊긴 사람·라운드·발언 수를 넘긴다 |
+| `CenteredState` `PRIMARY_BUTTON` `SECONDARY_BUTTON` | `components/states/CenteredState.tsx` | 가운데 정렬 상태 화면 틀 |
+| `useStepTicker` | `components/states/useStepTicker.ts` | **미리보기 전용.** 실제 화면은 서버가 알려준 단계를 넘긴다 |
 
 ### 남은 화면 — 이 순서를 권한다
 
 | 순서 | 시안 | 경로 | 메모 |
 |---|---|---|---|
-| 1 | `07-loading-targets.html` | — | 01 → 02 사이 대기 화면 |
-| 2 | `06-empty.html` | — | 빈 상태 |
-| 3 | `08-error.html` | — | 에러 상태 |
-| 4 | `07-1-loading-chat.html` | — | 발화 대기 |
-| 5 | `04-chat.html` | `/chat` | **제일 무겁다.** 상태 관리 + 스트리밍 |
-| 6 | `04-1-chat-dm.html` | `/chat` | 1:1 오른쪽 패널. 04 와 같은 화면 |
-| 7 | `07-2-loading-report.html` | — | 리포트 생성 대기 |
-| 8 | `05-report.html` | `/report` | 306줄, 가장 복잡 |
+| 1 | `04-chat.html` | `/chat` | **제일 무겁다.** 상태 관리 + 스트리밍. 07-1 조각(`ChatParts`)을 그대로 쓴다 |
+| 2 | `04-1-chat-dm.html` | `/chat` | 1:1 오른쪽 패널. 04 와 같은 화면 |
+| 3 | `05-report.html` | `/report` | 306줄, 가장 복잡. 진입 전 07-2 를 띄운다 |
 
-**06·07·08 을 먼저 하라고 권하는 이유**: 단순하고 독립적이라 빨리 끝나고,
-04·05 작업 중에 "로딩은 뭘 보여주지?"로 막히지 않는다.
+06·07·08 은 끝났다 (위 표). 04·05 에서 "로딩·에러는 뭘 보여주지?"는 이미 정해져 있다.
 
 ### 아직 없는 것
 
 - `src/app/api/chat/route.ts` 는 스텁이다. 실제 LLM 호출이 없다
 - 데이터 저장이 없다. 01 입력만 브라우저에 임시 저장된다
 - 화면 사이 데이터가 안 넘어간다. 각 화면이 `src/lib/mock.ts` 를 직접 읽는다
+  (그래서 06·07·08 은 실제 흐름에 아직 안 붙어 있다 — `/states` 로 확인)
 - 모바일 레이아웃(390) 없음. 데스크톱 1440 만 있다
 
 ---
@@ -164,6 +177,9 @@ npm run build
 
 ## 5. 자주 틀리는 것
 
+- **전역 CSS 규칙은 `@layer base` 안에 둔다.** 레이어 밖 규칙은 v4 에서 유틸리티보다 우선한다.
+  `a { color }` 가 밖에 있어서 파란 버튼(Link)의 글자가 파란색으로 안 보이던 적이 있다 (02 "이 세 명으로 진행하기")
+- **Next 16 의 `error.tsx` 는 `reset` 이 아니라 `retry` 를 받는다.** 예전 글을 따르지 말고 `node_modules/next/dist/docs` 를 본다
 - **Tailwind v4 에는 `tailwind.config.js` 가 없다.** 설정은 `src/app/globals.css` 의
   `@theme inline` 안에 있다. 검색해서 나온 v3 기준 글을 그대로 따르지 말 것
 - **다크 모드를 만들지 않는다.** `prefers-color-scheme` 블록을 추가하지 말 것
