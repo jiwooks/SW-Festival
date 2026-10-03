@@ -81,7 +81,7 @@ export function PersonaCard({
           <h3 className="text-base font-semibold">{name}</h3>
           {meta && <p className="text-xs text-muted">{meta}</p>}
         </div>
-        {selected && (
+        {selected ? (
           <span
             className={`flex size-[22px] shrink-0 items-center justify-center rounded-full text-white ${
               CHECK_BG[persona.color]
@@ -89,6 +89,12 @@ export function PersonaCard({
           >
             <CheckMark />
           </span>
+        ) : (
+          persona.source === "custom" && (
+            <span className="shrink-0 rounded-chip bg-bubble px-[9px] py-[5px] font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-3">
+              직접 만듦
+            </span>
+          )
         )}
       </header>
 
