@@ -1,0 +1,37 @@
+# SOUL 통합 상태 — 2026-10-05
+
+## 완료한 구현
+
+- SW-Festival main의 SOUL 아이디어·타깃·비교·채팅·리포트·상태 화면을 기존 Qwen FastAPI에 연결했다.
+- 기존 Persona Studio의 typed card, 별도 validator/repair, 불변 Core, 독립 문맥, private pre → 조건 기반 상호 대화 → private post, summary buffer와 평가·학습 준비를 보존했다.
+- Q3/Q4 제목, 입력 제한, WHO 타깃, 최대 3인 선택, 카드 수정/이름 변경, 이름+이용자 예시, 동일 채팅칸에서 이어 묻기를 연결했다.
+- PDF/HTML 배치에 실제 리포트 8개 섹션·쟁점·조건부 입장·인용·미확인·실제 인터뷰 계획을 매핑했다. 샘플 숫자·이름·리포트 주장을 복사하지 않았다.
+- 갱신 전 snapshot, stale 표시, 생성 날짜, JSON/TXT 저장, 인쇄/PDF용 스타일, 리포트에서 질문 초안 채우기, 다른 타깃으로 새 세션을 시작하는 기능을 구현했다.
+- 늦은 폴링 응답의 상태 덮어쓰기, 다른 세션으로 이동 중 과거 요청의 복원, 원문 인용 보존, 일반 말풍선의 내부 조건 ID 표시를 보완했다.
+- 다른 모델의 가중치·학습·추론 코드는 읽거나 실행하지 않았다. Next.js의 이전 모델 호출 경로는 Qwen backend 경로를 안내하는 410 응답으로 교체했다.
+- Windows/Mac 실행 문서, 두 서비스 런처, mock/Qwen smoke, GitHub CI를 제공한다. 새 fine-tuning은 수행하지 않았다.
+
+## 실제 실행으로 확인
+
+- 보유 Qwen3.5-4B Q4_K_M + llama.cpp b11146, Vulkan, context 8192, shared model 1개를 사용했다.
+- 합성 서점 예약 아이디어의 타깃 추천(중복 제거 후 5개) → 3인 카드 생성·검사 → 3개 private pre → 6개 공개 발화 → 3개 private post → 리포트 8개 섹션 → report-view에 성공했다.
+- 불변 카드 fingerprint 유지, 같은 revision 리포트의 캐시 재사용을 확인했다. 선택부터 첫 대화·리포트까지 약 336.82초(추천 시간 제외)였다. 속도 비교 시험은 아니다.
+- 브라우저에서 실제 입력·타깃 최대 선택·카드 비교·단일 채팅창·리포트 인용·JSON 저장·이어 묻기 초안·후속 상호 대화와 리포트 갱신을 확인했다. 최종 질문 3개/공개 발화 18개, 리포트 revision 18/stale false로 갱신에 성공했다.
+- backend 175개와 Node 회귀검사 66개, 전체 타입·lint 검사, 최종 production build가 통과했다.
+- 근거 없는 수치가 포함된 과거 문맥을 모델 입력에서 제외한 뒤 실제 Qwen 1회 호출(14.706초)에서 새 답변의 미확인 수치 재사용이 발생하지 않았다. 단일 합성 점검이다.
+- 원본 17개 세션을 그대로 보존하고 새 서비스 DB에 정확히 백업했다. Windows SOUL 런처를 실제 실행해 frontend 8000 → API 8001 → 기존 Qwen 8080 및 기존 최근 기록 복원을 확인했다.
+- 별도 mock DB에서 전체 실행 smoke에 성공했다. 이는 합성 소프트웨어 검사이며 실제 고객/모델 품질 점수가 아니다.
+- 상세 회귀검사와 최종 런처·보존 확인은 [검증 기록](docs/SOUL_VERIFICATION.md)에 기록했다.
+
+## 미검증·제한
+
+- 현재 장비는 Windows Intel Arc 130V 8GB/시스템 RAM 약 16GB다. Windows NVIDIA 8GB 및 Mac M4 16GB의 실제 실행·성능은 이 작업에서 검증하지 않았다.
+- 9B 모델과 별도 GPU fine-tuning을 실행하지 않았다. 학습 scaffold와 실행 문서는 제공한다.
+- 실제 human Gold, 고객 인터뷰·행동자료가 없으므로 PSV-9 성능, 다중대화 우월성, 수요·구매확률·PMF를 입증하지 않는다.
+- 4B는 표현 반복, 의미 오류와 근거 없는 가정을 생성할 수 있다. 제한된 lexical 검사·수정·원문 감사·L0 표시가 이를 완전히 검증하는 것은 아니다.
+- PDF 저장용 인쇄 기능은 구현했지만 OS 인쇄 대화상자에서 PDF 파일을 실제 저장하는 작업은 수행하지 않았다. JSON 저장은 실제 파일을 확인했다.
+- `npm audit --omit=dev` 배포 의존성은 0건. 개발용 ESLint 의존성 체인에 upstream 미패치 항목 5건이 남아 있으며, 이를 이유로 Next.js를 강제 다운그레이드하지 않았다.
+
+## 다음 단계
+
+허가된 실제 자료를 추가하고 human Gold/holdout으로 prompt baseline을 평가한다. 실제 인터뷰와 calibration한 뒤에만 별도 GPU에서 SFT/preference 학습을 검토한다. 새 브랜치의 변경을 검토한 뒤 main 병합 여부를 결정한다.

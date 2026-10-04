@@ -2,10 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/AppHeader";
 
 /**
- * 랜딩 (플레이스홀더).
- * 실제 랜딩은 design/ 의 랜딩 시안을 따라 별도로 만든다.
- * 섹션 순서: 네비 → 히어로(실제 단체대화 데모) → 근거 띠 → 문제 → 작동 방식
- *          → 멀티 페르소나 → 비교표 → 기관 도입 → FAQ → 최종 CTA → 푸터
+ * SOUL entry point. Product claims match the local Qwen workflow.
  */
 export default function LandingPage() {
   return (
@@ -29,20 +26,20 @@ export default function LandingPage() {
       <div className="mt-10 flex items-center gap-3">
         <Link
           href="/new"
-          className="flex items-center rounded-btn bg-brand px-6 text-[15px] font-semibold text-white"
+          className="flex h-12 items-center rounded-btn bg-brand px-6 text-[15px] font-semibold text-white"
         >
-          첫 검증 무료로 시작
+          아이디어 적고 시작하기
         </Link>
         <Link
-          href="/new"
-          className="flex items-center rounded-btn border border-btn-border px-6 text-[15px] text-ink-2"
+          href="/chat"
+          className="flex h-12 items-center rounded-btn border border-btn-border px-6 text-[15px] text-ink-2"
         >
-          작동 방식 90초 보기
+          저장한 대화 이어가기
         </Link>
       </div>
 
       <p className="mt-5 text-sm text-muted">
-        신용카드 없이 시작 · 아이디어 1건 무료 검증
+        로컬 Qwen · 최대 3인 페르소나 · 대화 근거가 있는 비교 리포트
       </p>
     </main>
   );

@@ -1,113 +1,105 @@
-# Soul
+# SOUL — Qwen 기반 페르소나 인터뷰
 
-**예비창업자를 위한 다중대화 타깃 검증 서비스**
+SOUL의 Next.js 화면과 기존 Persona Studio의 FastAPI/Qwen 기능을 연결했다. 아이디어 → 타깃 추천 → 최대 3인 선택·생성·검사 → 카드 비교 → 자유로운 다중대화 → 출처가 있는 리포트 → 이어 묻기 순서로 사용할 수 있다. 이름 옆에는 이용자 예시만 표시한다.
 
-첫 고객 인터뷰 전에 리허설하고, 다녀온 뒤 다시 묻는 도구.
+생성한 의견은 **AI 시뮬레이션 가설**이다. 실제 고객 인터뷰와 행동 데이터로 검증해야 한다. Qwen은 한 개만 띄우며 카드·불변 Core·개인 문맥·세션 상태를 분리한다. 다른 모델의 가중치·학습·추론 작업은 사용하지 않는다. 이번 통합은 기존 구조화 프롬프트/스키마를 연결한 작업이며 새 fine-tuning을 수행했다는 뜻이 아니다.
 
-아이디어를 적으면 타깃 후보를 찾아주고, 그 타깃들이 한 방에 모여 서로의 말을 들으며 답합니다.
-인터뷰를 대신하지 않습니다. 앞뒤를 채웁니다.
+## Windows 설치·실행
 
-## 시작하기
+Node.js 20.9 이상, Python 3.11 이상과 Qwen 지원 llama.cpp 서버가 필요하다. 저장소 루트에서 실행한다.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
+npm ci --ignore-scripts
+npm run build
+Copy-Item .env.example .env
+```
+
+이미 보유한 **Qwen GGUF**와 **llama-server.exe**의 실제 경로를 지정한다. 서버 :8080이 실행 중이면 선택한 모델 경로가 일치하는지 확인 후 재사용한다. 다른 모델에 자동 연결하거나 mock으로 전환하지 않는다.
+
+```powershell
+.\scripts\start_soul_windows.ps1 -ModelPath C:\models\Qwen3.5-4B-Q4_K_M.gguf -Server C:\llama\llama-server.exe
+```
+
+SOUL 화면: http://127.0.0.1:8000 · FastAPI: http://127.0.0.1:8001/docs · Qwen: :8080. 종료하면 이 스크립트가 직접 시작한 backend/model만 종료한다. 이전부터 실행 중인 모델은 그대로 둔다. 이미 :8000이 사용 중이면 기존 런처를 종료하거나 `-Port 3000`으로 새 화면을 확인한다. :8001은 통합 backend 전용이다.
+
+Qwen 9B는 `-ModelPath`를 해당 4-bit GGUF로 바꾼다. 메모리/속도에 따라 4B를 사용할 수 있으며 품질이 같다고 가정하지 않는다. 이 작업의 실제 실행 모델 및 측정은 [STATUS.md](STATUS.md)에 기록한다. Windows NVIDIA 8GB 세부 설정은 [설치 문서](docs/WINDOWS_8GB.md)를 따른다. 모델은 Git에 포함하지 않는다.
+
+## MacBook Pro M4 16GB
 
 ```bash
-npm install
-cp .env.example .env.local   # LLM_BASE_URL 은 AI팀 엔드포인트가 정해지면 채운다
-npm run dev
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock.txt
+npm ci --ignore-scripts
+npm run build
+cp .env.example .env
+# 터미널 1: Qwen 지원 llama.cpp 설치 후, 해당 모델만 지정
+LLAMA_SERVER=/absolute/path/llama-server bash scripts/start_qwen_mac.sh /absolute/path/Qwen3.5-4B-Q4_K_M.gguf
+# 터미널 2
+bash scripts/start_soul_mac.sh
 ```
 
-http://localhost:3000
+Metal·메모리 설정은 [Mac 실행 문서](docs/MAC_M4_16GB.md)를 참고한다. 현재 Windows에서 실행한 결과만으로 Mac 성능을 검증했다고 하지 않는다.
 
-엔드포인트가 비어 있어도 화면은 돕니다. 스텁이 응답하도록 해뒀습니다.
+## 모델 없이 소프트웨어 실행 점검
 
-## 스택
+명시적인 mock 모드이며 화면에도 합성 결과라는 표시가 나온다. 실제 Qwen/시장 성능 시험과 구분한다.
 
-- Next.js 16 (App Router, Turbopack) · React 19 · TypeScript
-- Tailwind CSS v4 — 설정은 CSS 안에 있다 (`src/app/globals.css` 의 `@theme inline`)
-- 폰트: IBM Plex Sans KR + IBM Plex Mono (`next/font`로 빌드 시 자체 호스팅)
-
-## 구조
-
-```
-src/
-  app/
-    (landing)/page.tsx      /            랜딩
-    (app)/
-      layout.tsx
-      new/                  /new         01 아이디어 입력
-      targets/              /targets     02 타깃 추천·선택
-      targets/new/          /targets/new 02-1 직접 만들기
-      compare/              /compare     03 한눈에 보기
-      chat/                 /chat        04 대화
-      report/               /report      05 리포트
-    api/chat/route.ts       페르소나 발화 스트리밍 (스텁)
-    globals.css             토큰 → Tailwind 유틸리티 연결
-    layout.tsx              폰트, 메타데이터
-  components/               AppHeader, PersonaAvatar, Chip, AttrRow, PageFooterBar
-  lib/types.ts              Idea, Persona, Room, Message, Issue, Report
-  styles/tokens.css         색·폰트·radius 단일 출처
-public/                     정적 파일
-design/
-  screens/                  화면 12개 정적 시안 (브라우저에서 바로 열림)
-  README.md                 시안 읽는 법, 컴포넌트 분해안
-docs/
-  DECISIONS.md              결정과 그 이유, 폐기한 안, 미결 사항
-  HANDOFF.md                합류·재개용 — 지금 상태와 다음 작업 순서
-CLAUDE.md                   디자인·카피·접근성 규칙 (작업 전 필독)
-.env.example                필요한 환경변수 목록
+```powershell
+.\scripts\start_soul_windows.ps1 -Mode mock
+# 새 합성 아이디어로 전체 경로 확인. 기존 사용자 세션은 재사용/삭제하지 않음
+.\.venv\Scripts\python.exe -X utf8 scripts/soul_smoke.py --base-url http://127.0.0.1:8000
 ```
 
-설정 파일은 루트에 있다 — `next.config.ts`, `tsconfig.json`,
-`postcss.config.mjs`, `eslint.config.mjs`.
-Tailwind v4 라서 `tailwind.config.ts` 는 없다.
+Mac에서는 `LLM_MODE=mock bash scripts/start_soul_mac.sh`를 사용한다. Qwen 모드의 연결 실패 시 mock 결과로 몰래 대체하지 않는다.
 
-## 규칙 요약
+## 개발·검증
 
-전문은 `CLAUDE.md`. 자주 어기는 것만 추려두면:
-
-- 색은 `tokens.css` 변수로만. hex 하드코딩 금지
-- 라이트 전용. 다크 모드 만들지 않는다
-- 그림자 금지. 구분은 1px 테두리로만
-- 페르소나는 정해진 5색만. 파랑·초록은 브랜드색이라 안 쓴다
-- 색만으로 정보 전달 금지 — 색 + 이니셜 + 이름
-- 걱정되는 점을 비우지 않는다. 비면 그 사람이 반대할 근거가 없어진다
-- LLM 호출은 서버에서만. `NEXT_PUBLIC_` 에 키를 넣지 않는다
-- 카피에서 "인터뷰를 대체한다"는 인상을 주지 않는다
-
-## 팀 경계
-
-모델 선택과 학습은 AI팀이 합니다. 웹은 AI팀이 준 엔드포인트 하나만
-`src/app/api/chat/route.ts` 에서 호출하고, 그 뒤에 어떤 모델이 있는지 가정하지 않습니다.
-그래서 환경변수 이름에도 제공사를 넣지 않았습니다.
-
-## 브랜치 규칙
-
-`main`은 항상 동작하는 상태로 둔다. 작업은 브랜치에서 하고 PR로 합친다.
-
-```
-feat/타깃-화면      기능 추가
-fix/스트리밍-끊김   버그 수정
-docs/스택-정리      문서만 바꿀 때
+```powershell
+# 터미널 1 (Qwen 서버는 별도 실행)
+$env:LLM_MODE='qwen'
+$env:SESSION_DB='data/sessions.sqlite3'
+.\.venv\Scripts\python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8001
+# 터미널 2
+npm run dev -- --hostname 127.0.0.1 --port 8000
 ```
 
-합치기 전에 세 개를 돌린다.
+`SOUL_API_ORIGIN` 기본값은 `http://127.0.0.1:8001`이다. 변경 시 **빌드 전에** 설정하고 다시 빌드한다. `/api/*` 요청은 같은 출처로 프록시하며 긴 로컬 추론에 30분의 연결 제한을 둔다. 화면은 GET 폴링으로 완료된 공개 말풍선을 읽는다. Private Pre/Post는 대화창에 공개하지 않는다. 특정 참여자에게 질문하는 화면도 현재 공개 세션의 일부이며 비공개 DM으로 보장하지 않는다.
 
-```bash
+```powershell
+.\.venv\Scripts\python.exe -m pip install pytest
+$env:LLM_MODE='mock'
+$env:SESSION_DB='verification-private/test-import.sqlite3'
+.\.venv\Scripts\python.exe -m pytest -q
+node tests/frontend_korean.test.cjs
+npm ci --ignore-scripts
+node tests/soul_frontend.test.cjs
+node tests/chat_presentation.test.cjs
+node "src/app/(app)/report/report.test.cjs"
 npm run typecheck
 npm run lint
 npm run build
+.\.venv\Scripts\python.exe -m eval.run_eval --mode mock --out eval/runs/demo
+.\.venv\Scripts\python.exe -X utf8 scripts/soul_smoke.py --out verification-private/smoke.json
 ```
 
-브랜치를 이틀 이상 살려두지 않는다. 셋이 같은 코드를 만지면 오래 산 브랜치는 반드시 충돌한다.
-리뷰어가 없으면 셀프 머지해도 되지만, PR은 남긴다.
+최종 회귀 검사에서 backend **175개**가 통과했다(47.34초). Node 검사는 기존 한국어 formatter 33개, 프론트 API·세션 경계 19개, 채팅 표시 4개, 리포트 SSR 10개로 **총 66개**가 통과했다. 전체 TypeScript·ESLint 검사도 통과했으며 production 의존성의 `npm audit` 결과는 0건이다. 개발 의존성의 upstream ESLint 경고 범위는 [STATUS.md](STATUS.md)에 기록한다.
 
-## 다음 할 일
+Node 경계 검사는 메모리 내 fetch·저장소·타이머를 사용하며, SSR 검사는 합성 리포트의 인용·입장 표시·저장 날짜·내보내기를 확인한다. 실제 모델이나 고객 성능을 평가하는 검사는 아니다. 같은 명령을 `.github/workflows/qwen-ci.yml`에서 실행하며, TypeScript/React를 사용하는 새 Node 검사는 `npm ci` 이후에 실행한다.
 
-- [ ] 화면 이식 — `02-targets` 부터 (공통 컴포넌트가 거의 다 여기 있다)
-- [ ] 로딩 상태 3종 — 시안이 나왔다 (`07`, `07-1`, `07-2`)
-- [ ] 빈 상태 / 에러 상태 (`06`, `08`)
-- [ ] 오케스트레이터 — 발화 순서, 라운드 관리, 쟁점 태깅
-- [ ] 모바일 레이아웃 (390)
+첫 추천과 카드 생성은 실제 모델 작업이다. 기다리는 동안 페이지를 닫더라도 저장된 세션을 복원할 수 있고 대화 실패 시 같은 질문으로 재개한다. 이름/세그먼트 외의 근거 없는 인구통계와 과거 경험을 임의로 채우지 않는다. 입력의 글자 수 제한은 backend와 UI가 공유한다.
 
-## 라이선스
+## 리포트와 평가·학습 준비
 
-MIT — `LICENSE` 참고.
+첨부 SOUL PDF/HTML의 배치를 사용하고 숫자·이름·예시 주장은 재사용하지 않았다. 기존 8개 인사이트 + 공개 발화의 쟁점별 의견/조건/인용, 같은 쟁점의 입장 표현 변화, 미확인 사항, 실제 고객 질문을 제시한다. KPI는 세션 배열에서 집계하며 구매확률·PMF·인간 유사 정확도를 산출하지 않는다. 이어 묻기 후 리포트가 오래되었다는 표시와 갱신 기능을 제공한다. JSON/텍스트 저장과 인쇄(PDF 저장), 질문 복사도 지원한다.
+
+`eval/`에 PSV-9 rubric/Gold schema/1 또는 3 judge·A/B swap·A–D 비교·실제 인터뷰 calibration이 있다. 합성 예시는 smoke에만 사용한다. 실제 human Gold와 행동자료가 없어 평가 점수·효과를 주장하지 않는다. [평가 실행](eval/README.md), [실험 계획](docs/07_EXPERIMENT_PLAN.md), [실제 인터뷰 calibration](docs/05_DATA_SCHEMA.md)을 따른다.
+
+`training/`은 SFT/preference 스키마와 자료 준비 scaffold다. 학습을 실행하지 않았다. 향후 허가된 실제 자료 수집 → holdout 분리 → prompt baseline 평가 → 데이터 정제 → 별도 NVIDIA/cloud GPU로 학습 → Qwen baseline과 회귀 비교 순서로 진행한다. 9B QLoRA를 일반 Windows 8GB 추론과 같은 작업으로 취급하지 않는다.
+
+## 구조·보존
+
+`src/` Next.js SOUL 화면 · `backend/` Qwen API/생성/검사/대화/리포트 · `frontend/` 기존 Python 호환용 화면 · `eval/` 평가 · `training/` 학습 준비 · `docs/` 설계 · `tests/` 회귀검증. 신규 통합의 source of truth는 [SOUL 통합 계약](docs/18_SOUL_INTEGRATION.md), 세부 기존 설계는 문서 01–17이다.
+
+기존 Persona Studio 저장소·사용자 SQLite는 덮어쓰지 않는다. `data/`, `.env`, 모델, runtime, 사용자 인터뷰 기록과 첨부 원본 PDF는 공개 브랜치에서 제외한다. 문서의 이전 `examples/` 경로는 원래 로컬 저장소의 역사 기록이며 공개된 실행 자료를 뜻하지 않는다. 이번 검증만 [검증 기록](docs/SOUL_VERIFICATION.md)에 남긴다.

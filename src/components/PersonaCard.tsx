@@ -45,10 +45,9 @@ function CheckMark() {
  * 페르소나 카드. 02 추천 목록, 02-1 미리보기가 같은 모양을 쓴다.
  *
  * 구성 순서는 CLAUDE.md 9절에서 고정했다:
- * 이름·나이·성별·직업 → 상황 문장 → 관심사 → 걱정 → 한마디 → 물어볼 것 / 고른 이유
+ * 이름·이용자 예시 → 상황 문장 → 판단 조건 → 확인할 점
  *
- * 분류 배지(핵심/회의적 등)를 노출하지 않는다. skeptical 은 내부 플래그라
- * 화면에 드러내지 않는다.
+ * 의견이나 찬반 역할을 미리 정하지 않는다.
  */
 export function PersonaCard({
   persona,
@@ -66,8 +65,8 @@ export function PersonaCard({
   onEdit?: () => void;
   readOnly?: boolean;
 }) {
-  const { name, age, gender, occupation, interests, worries } = persona;
-  const meta = [age, gender, occupation].filter(Boolean).join(" · ");
+  const { name, interests, worries } = persona;
+  const meta = persona.segment;
 
   return (
     <article
@@ -111,7 +110,7 @@ export function PersonaCard({
             ))}
           </span>
         </AttrRow>
-        {/* 걱정이 비면 반대할 근거가 없어 무조건 좋다고만 말한다 */}
+        {/* Generated conditions may be unknown; do not require a negative opinion. */}
         <AttrRow label="걱정" labelWidth={LABEL_W} align="start">
           <span className="flex flex-wrap gap-[5px]">
             {worries.map((item) => (

@@ -1,5 +1,7 @@
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import type { PersonaColor } from "@/lib/types";
+import { normalize } from "@/lib/korean-text";
+import { chatInteractionLabel } from "@/lib/chat-presentation";
 
 /**
  * 단체 대화(04)와 발화 대기(07-1)가 함께 쓰는 조각.
@@ -38,10 +40,12 @@ export function RoundDivider({ round, label }: { round: number; label: string })
 /** 페르소나 한 명의 발언 말풍선 */
 export function PersonaMessage({
   name,
+  segment,
   color,
   children,
 }: {
   name: string;
+  segment?: string;
   color: PersonaColor;
   children: React.ReactNode;
 }) {
@@ -49,9 +53,9 @@ export function PersonaMessage({
     <div className="flex gap-[11px]">
       <PersonaAvatar name={name} color={color} />
       <div className="flex max-w-[620px] flex-col gap-[5px]">
-        <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}</p>
-        <div className="rounded-[4px_14px_14px_14px] border border-card bg-base px-4 py-[13px] text-[15px] leading-[1.72] text-ink-2">
-          {children}
+        <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}{segment && <span className="ml-2 font-normal text-muted">{segment}</span>}</p>
+        <div className="whitespace-pre-wrap rounded-[4px_14px_14px_14px] border border-card bg-base px-4 py-[13px] text-[15px] leading-[1.72] text-ink-2">
+          {typeof children === "string" ? normalize(children) : children}
         </div>
       </div>
     </div>
@@ -119,6 +123,8 @@ export function ChatComposer({
   onChange,
   onSend,
   sending = false,
+  inputId = "say",
+  maxLength = 500,
   placeholder = "세 명에게 묻고 싶은 것을 적어주세요",
 }: {
   value: string;
@@ -126,24 +132,27 @@ export function ChatComposer({
   onSend: () => void;
   /** 페르소나가 말하는 중이면 보내기를 막는다 */
   sending?: boolean;
+  inputId?: string;
+  maxLength?: number;
   placeholder?: string;
 }) {
   const disabled = sending || !value.trim();
   return (
     <form
-      className="flex w-[880px] items-center gap-3"
+      className="flex w-full items-center gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!disabled) onSend();
       }}
     >
-      <label htmlFor="say" className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         하고 싶은 말
       </label>
       <input
-        id="say"
+        id={inputId}
         type="text"
         value={value}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="h-[50px] grow rounded-[14px] border border-input-border bg-base px-[18px] text-[15px] text-ink placeholder:text-muted"
@@ -178,7 +187,7 @@ export function UserMessage({ children, compact = false }: { children: React.Rea
     <div className={`flex flex-col gap-[5px] self-end ${compact ? "max-w-[330px]" : "max-w-[580px]"}`}>
       <p className={`self-end font-semibold text-muted ${compact ? "text-[11px]" : "text-xs"}`}>나</p>
       <div
-        className={`bg-brand text-white ${
+        className={`whitespace-pre-wrap bg-brand text-white ${
           compact
             ? "rounded-[12px_4px_12px_12px] px-3.5 py-[11px] text-sm leading-[1.7]"
             : "rounded-[14px_4px_14px_14px] px-4 py-[13px] text-[15px] leading-[1.72]"
@@ -197,10 +206,12 @@ export function UserMessage({ children, compact = false }: { children: React.Rea
 export function ChatRoomHeader({
   personas,
   round,
+  interaction = "auto",
   onOpenDm,
 }: {
   personas: { id: string; name: string; color: PersonaColor }[];
   round: number;
+  interaction?: "auto" | "direct" | "interactive";
   onOpenDm: (id: string) => void;
 }) {
   return (
@@ -217,17 +228,17 @@ export function ChatRoomHeader({
           {personas.length === 3 ? "세 명과" : `${personas.length}명과`} 함께 이야기하는 중
         </h1>
         <p className="font-mono text-[11px] tracking-[0.1em] text-muted">
-          {personas.map((p) => p.name).join(" · ")} — ROUND {String(round).padStart(2, "0")}
+          {personas.map((p) => p.name).join(" · ")} — {round ? `질문 ${round}개` : "대화 준비"} · {chatInteractionLabel(interaction)}
         </p>
       </div>
       <div className="flex items-center gap-[7px]">
-        <span className="mr-0.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-muted">따로</span>
+        <span className="mr-0.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-muted">한 명에게 묻기</span>
         {personas.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => onOpenDm(p.id)}
-            aria-label={`${p.name}와 따로 이야기`}
+            aria-label={`${p.name}님에게 지정 질문`}
             className="flex size-11 items-center justify-center rounded-full"
           >
             <span className="rounded-full border-2 border-base">
