@@ -14,8 +14,8 @@
 
 최신 실행에서 다음 검사가 통과했다. 재실행 명령은 README 및 GitHub CI에 기록한다.
 
-- backend pytest: **175 passed**, 47.34초.
-- Node: 한국어 formatter 33개 + 프론트 API·세션 경계 19개 + 채팅 표시 4개 + 리포트 SSR 10개, **총 66 passed**.
+- backend pytest: **183 passed**, 159.90초.
+- Node: 한국어 formatter 33개 + 프론트 API·세션 경계 19개 + 채팅 표시 5개 + 이름/선택 연결 5개 + 리포트 SSR 10개, **총 72 passed**.
 - 전체 TypeScript 검사와 ESLint 검사 통과.
 - 최종 Next.js production build 성공: 전체 17개 화면/경로 생성, TypeScript 검사 포함.
 - production 의존성 `npm audit`: 0건. 개발 의존성의 upstream ESLint 5개 high 경고에 대한 범위와 제한은 STATUS에 기록한다.
@@ -47,3 +47,17 @@ Qwen이 카드·사용자 입력에 없는 빈도 숫자를 만들어 후속 답
 기존 DB를 유지한 채 새 SOUL의 private DB로 SQLite backup을 수행했고, 두 DB의 17개 payload가 모두 일치함을 다시 확인했다. 기존 실행기를 종료하고 Windows SOUL 런처를 실제 실행했다. frontend 8000의 같은 origin API → backend 8001 → 기존 Qwen 8080에서 health qwen/ok 및 기존 최근 세션 복원에 성공했다. 기존 모델 프로세스는 유지했다. 이전 창의 미전송 입력도 로컬 private 작업 파일에 보존한 뒤 화면을 새로고침했다.
 
 human Gold와 고객 행동자료가 없어 성능 점수는 제공하지 않는다. synthetic eval 3건의 관찰 불가능 PSV-9 점수는 null이며 실제 인간 평가를 대체하지 않는다.
+
+## feat/frontend-update 후속 검증
+
+화면 기준 `c0a09e2f51f8070dfec1a361eec0ff99f031dd32`, upstream main `de5acf66ccced8571ba46dcda93acf44b6e06222`를 반영했다. 기존 Qwen 생성·검사·문맥·대화·리포트 생성 코드는 그대로 유지하고 표시 메타데이터 계약만 확장했다.
+
+- backend 전체 **183 passed**, 159.90초. 새 이름 저장, 생성 입력/불변 Core 동일성, 잘못된 이름의 호출 전 거부, 카드 검사 실패 시 이름/기존 Core 보존을 검사했다. 기존 중복 타깃 거부 응답도 유지했다.
+- Node 전체 **72 passed**: formatter 33 + API/세션 19 + 채팅 표시 5 + 이름/선택 연결 5 + 리포트 SSR 10. 원 인용·URL·코드와 저장 데이터는 표시 정리 대상에서 제외했다.
+- 브라우저의 별도 mock 세션에서 후보 이름/새 아바타, 이름 편집 미리보기, 다른 후보 이름 유지, 최대 세 명 선택/네 번째 제한, 카드 비교/공용 이름 수정, 목록 갱신, 실제 아이디어 요약, 단일 채팅칸의 세 명 독립 기여와 상호 응답 6개, 이름을 유지한 리포트를 확인했다. 합성 응답이라는 표시를 유지했다.
+- 기존 **Qwen3.5-4B-Q4_K_M.gguf**를 사용하는 별도 API/DB에서 새 합성 아이디어의 타깃 **6개** 추천 → **1인** 카드 생성·별도 validator → 지정 이름/선택 타깃 ID 저장 및 GET 복원에 성공했다. **145.324초**. UI 업데이트의 실제 모델 연결 smoke이며 고객 품질이나 다중대화 우월성을 검증한 수치가 아니다.
+- 새 학습/모델 다운로드/다른 모델 접근은 수행하지 않았다. 표시용 이름은 Target·PersonaCard 생성 스키마와 모델 입력에 추가하지 않았다.
+
+시험에는 원래 서비스 포트/DB를 재사용하지 않고 frontend :8003, mock API :8013, Qwen 시험 API :8014와 별도 합성 SQLite를 사용했다. 기존 Qwen :8080만 경로를 확인한 뒤 재사용했다. 사용자 세션의 payload SHA 보존과 최종 타입/lint/production build 결과는 마지막 배포 점검에 포함한다.
+
+최종 화면 확인에서 `text-base` 글자 크기와 `--color-base` 배경색 토큰 충돌로 이름/일부 제목이 흰색으로 렌더링되는 원인을 발견했다. 크기 전용 `text-[16px]`로 수정하고 실제 화면의 글자 색·스크린샷으로 재확인했다. 리포트 뒤 동일 채팅칸의 두 번째 질문에서 모든 참여자 기여/상호 응답 6개가 추가되어 총 공개 발화 12개, 이전 리포트 stale 표시까지 확인했다. 사용자 원본 17개 payload는 두 저장소에서 모두 변경되지 않았다.

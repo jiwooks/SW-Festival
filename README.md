@@ -76,6 +76,7 @@ node tests/frontend_korean.test.cjs
 npm ci --ignore-scripts
 node tests/soul_frontend.test.cjs
 node tests/chat_presentation.test.cjs
+node tests/persona_presentation.test.cjs
 node "src/app/(app)/report/report.test.cjs"
 npm run typecheck
 npm run lint
@@ -84,7 +85,7 @@ npm run build
 .\.venv\Scripts\python.exe -X utf8 scripts/soul_smoke.py --out verification-private/smoke.json
 ```
 
-최종 회귀 검사에서 backend **175개**가 통과했다(47.34초). Node 검사는 기존 한국어 formatter 33개, 프론트 API·세션 경계 19개, 채팅 표시 4개, 리포트 SSR 10개로 **총 66개**가 통과했다. 전체 TypeScript·ESLint 검사도 통과했으며 production 의존성의 `npm audit` 결과는 0건이다. 개발 의존성의 upstream ESLint 경고 범위는 [STATUS.md](STATUS.md)에 기록한다.
+최종 회귀 검사에서 backend **183개**가 통과했다(159.90초). Node 검사는 기존 한국어 formatter 33개, 프론트 API·세션 경계 19개, 채팅 표시 5개, 이름·선택 연결 5개, 리포트 SSR 10개로 **총 72개**가 통과했다. 전체 TypeScript·ESLint 검사도 통과했으며 production 의존성의 `npm audit` 결과는 0건이다. 개발 의존성의 upstream ESLint 경고 범위는 [STATUS.md](STATUS.md)에 기록한다.
 
 Node 경계 검사는 메모리 내 fetch·저장소·타이머를 사용하며, SSR 검사는 합성 리포트의 인용·입장 표시·저장 날짜·내보내기를 확인한다. 실제 모델이나 고객 성능을 평가하는 검사는 아니다. 같은 명령을 `.github/workflows/qwen-ci.yml`에서 실행하며, TypeScript/React를 사용하는 새 Node 검사는 `npm ci` 이후에 실행한다.
 
@@ -100,6 +101,6 @@ Node 경계 검사는 메모리 내 fetch·저장소·타이머를 사용하며,
 
 ## 구조·보존
 
-`src/` Next.js SOUL 화면 · `backend/` Qwen API/생성/검사/대화/리포트 · `frontend/` 기존 Python 호환용 화면 · `eval/` 평가 · `training/` 학습 준비 · `docs/` 설계 · `tests/` 회귀검증. 신규 통합의 source of truth는 [SOUL 통합 계약](docs/18_SOUL_INTEGRATION.md), 세부 기존 설계는 문서 01–17이다.
+`src/` Next.js SOUL 화면 · `backend/` Qwen API/생성/검사/대화/리포트 · `frontend/` 기존 Python 호환용 화면 · `eval/` 평가 · `training/` 학습 준비 · `docs/` 설계 · `tests/` 회귀검증. 최신 화면은 `feat/frontend-update` 기준이다. 후보 이름·아바타·공용 편집·실제 아이디어 요약을 [화면 업데이트 계약](docs/19_FRONTEND_UPDATE.md)에 따라 연결했다. 신규 통합의 source of truth는 [SOUL 통합 계약](docs/18_SOUL_INTEGRATION.md), 세부 기존 설계는 문서 01–17이다.
 
 기존 Persona Studio 저장소·사용자 SQLite는 덮어쓰지 않는다. `data/`, `.env`, 모델, runtime, 사용자 인터뷰 기록과 첨부 원본 PDF는 공개 브랜치에서 제외한다. 문서의 이전 `examples/` 경로는 원래 로컬 저장소의 역사 기록이며 공개된 실행 자료를 뜻하지 않는다. 이번 검증만 [검증 기록](docs/SOUL_VERIFICATION.md)에 남긴다.

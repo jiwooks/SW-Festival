@@ -89,6 +89,8 @@ def create_app(db=None,llm=None):
             lookup={t.id:t for t in s.targets}
             if not set(selection.target_ids)<=set(lookup): raise HTTPException(422,'unknown target ID')
             chosen=[lookup[x] for x in selection.target_ids]+selection.custom_targets
+            if len({t.id for t in chosen})!=len(chosen):
+                raise HTTPException(422,'같은 타깃을 중복 선택했습니다. 서로 다른 타깃을 선택하세요.')
             cards=[]; validations=[]; start=len(client.records)
             for t in chosen:
                 check_target(t)
@@ -98,8 +100,10 @@ def create_app(db=None,llm=None):
             selection_audit=validate_target_selection(s.brief,chosen,s.target_audits,client)
             for n,t in enumerate(chosen):
                 card,audit=build_card(t,cards,s.input.evidence,client,f'p{n+1}',s.brief); cards.append(card); validations.append(audit)
+                if selection.display_names: card.presentation.display_name=selection.display_names[t.id]
             if selection_audit: s.target_audits.append(selection_audit)
             s.cards=cards; s.validations=validations; s.status='SELECTED'; s.state_history.append('SELECTED')
+            s.selected_target_ids=[t.id for t in chosen]
             s.suggestions=[]; s.lounge_mode=None
             s.usage['selection']=client.usage(start); store.put(s); return s
         except (ValueError,LLMError) as exc: raise HTTPException(422,str(exc))
@@ -186,6 +190,9 @@ def create_app(db=None,llm=None):
             if s.status!='SELECTED': raise HTTPException(409,'Edit before the interview starts')
             old=next((c for c in s.cards if c.id==persona_id),None)
             if old is None or card.id!=persona_id: raise HTTPException(422,'Persona ID mismatch')
+            card.presentation.display_name=NameEdit(display_name=card.presentation.display_name).display_name
+            if any(c.id!=persona_id and c.presentation.display_name==card.presentation.display_name for c in s.cards):
+                raise HTTPException(422,'참여자 이름은 서로 다르게 지정하세요.')
             if len(card.model_dump_json())>LIMITS['card_json']: raise HTTPException(422,'Card exceeds 14000 characters')
             # The selected hypothetical target cannot be changed through a card edit.
             target=Target(segment_name=old.immutable_core.identity_context.segment,why_relevant='Selected target',

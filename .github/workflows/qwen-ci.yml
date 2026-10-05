@@ -23,6 +23,8 @@ jobs:
         run: node tests/soul_frontend.test.cjs
       - name: Chat display and interaction labels
         run: node tests/chat_presentation.test.cjs
+      - name: Persona display names and selection mapping
+        run: node tests/persona_presentation.test.cjs
       - name: Report rendering and citations
         run: node "src/app/(app)/report/report.test.cjs"
       - run: npm run typecheck

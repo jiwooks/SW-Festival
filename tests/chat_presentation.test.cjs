@@ -57,3 +57,7 @@ test('rule display cleanup is restricted and preserves literal source quotations
   assert.equal(chat.displayChatText(input, 'p1', people), input);
   assert.equal(chat.displayChatText('(r1, p2:rr2) r2에 따른 조건', 'p1', people), ' 제 판단 조건에 따른 조건');
 });
+test('known public utterance references show their owner while original literal citations remain intact', () => {
+  const text='동료의 조건 [u6]을 비교합니다. [u99] "[u6]" ` [u6] ` https://example.org/[u6]';
+  assert.equal(chat.displayChatText(text,'p1',people,{u6:'김하린'}),'동료의 조건 [김하린님 발언]을 비교합니다. [u99] "[u6]" ` [u6] ` https://example.org/[u6]');
+});

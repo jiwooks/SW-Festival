@@ -9,6 +9,7 @@ import { useSoulSession } from "@/lib/use-soul-session";
 import { ReportClient, ReportDownloadButton } from "./ReportView";
 import type { SoulReportView } from "./report-types";
 import styles from "./report.module.css";
+import { cardColor } from "@/lib/persona-presentation";
 
 // React Strict Mode and two mounted views can request the same initial snapshot.
 // Deduplicate the actual mutation; the backend also returns the cached revision.
@@ -111,7 +112,7 @@ export function ReportPageClient() {
   return <div className={`${styles.page} flex min-w-0 grow flex-col`}>
     <AppHeader current="05" right={currentView ? <ReportDownloadButton report={currentView} /> : undefined} />
     {displayError ? <div role="alert" className="mx-auto mt-5 w-[calc(100%-40px)] max-w-[1220px] rounded-card border border-card bg-conflict-bg p-4 text-sm leading-relaxed text-conflict-fg"><p>{displayError}</p><div className="mt-3 flex flex-wrap gap-3" data-report-controls><button type="button" onClick={() => { setError(null); void refresh().then(() => setReloadEpoch((value) => value + 1)); }} disabled={working} className="rounded-btn border border-btn-border bg-base px-3 py-2 disabled:opacity-50">서버 기록 다시 불러오기</button>{sessionId && hasPublic ? <button type="button" onClick={() => void regenerate()} disabled={working || busy} className="rounded-btn bg-brand px-3 py-2 text-white disabled:opacity-50">리포트 생성 다시 시도</button> : null}</div></div> : null}
-    {currentView && session ? <ReportClient report={currentView} mode={session.mode} regenerating={working || busy} onRegenerate={() => void regenerate()} onContinue={() => router.push("/chat")} onAsk={ask} onNewTargets={newTargets} />
+    {currentView && session ? <ReportClient report={currentView} colors={Object.fromEntries(session.cards.map(card => [card.id, cardColor(session, card)]))} mode={session.mode} regenerating={working || busy} onRegenerate={() => void regenerate()} onContinue={() => router.push("/chat")} onAsk={ask} onNewTargets={newTargets} />
       : <main className={`${styles.body} grow`}>
         {waiting ? <Waiting text={working ? "대화를 정리하고 있어요" : "리포트 기록을 불러오고 있어요"} />
           : !session ? <section className="rounded-card border border-card bg-base p-6"><h1 className="text-2xl font-semibold">아직 분석할 대화가 없어요</h1><p className="mt-3 text-sm text-muted">아이디어를 입력하고 타깃을 정한 뒤 대화하면 리포트를 만들 수 있습니다.</p><Link href="/new" className="mt-5 inline-flex rounded-btn bg-brand px-5 py-3 text-sm font-semibold text-white">아이디어 입력하기</Link></section>

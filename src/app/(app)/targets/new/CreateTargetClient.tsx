@@ -2,11 +2,35 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { TargetEditor, loadCustomTargets, saveCustomTargets } from "@/components/TargetEditor";
+import { TargetEditor, loadCustomTargets, saveCustomTargets, NEW_TARGET } from "@/components/TargetEditor";
+import { PersonaEditor } from "@/components/PersonaEditor";
+import { PersonaCard } from "@/components/PersonaCard";
+import { targetPersonas } from "@/lib/persona-presentation";
 import { useSoulSession } from "@/lib/use-soul-session";
-export function CreateTargetClient() {
+import type { Target } from "@/lib/soul-api";
+export function CreateTargetClient({ editId, returnTo = "/targets" }: { editId?: string; returnTo?: "/targets" | "/compare" }) {
   const router = useRouter();
   const { session, loading, error: readError } = useSoulSession();
   const [error, setError] = useState<string | null>(null);
-  return <main className="flex grow flex-col gap-5 px-[clamp(20px,6vw,80px)] py-8"><div><p className="font-mono text-xs tracking-widest text-muted">STEP 02</p><h1 className="mt-2 text-[28px] font-bold">직접 만나볼 이용자 만들기</h1><p className="mt-2 text-sm leading-relaxed text-ink-3">이용자 유형과 관련된 상황을 입력하세요. 목록에서 선택하면 Qwen의 적합성 검사와 페르소나 생성을 진행합니다.</p></div>{loading ? <p role="status">아이디어를 불러오는 중…</p> : session && (session.status === "CREATED" || session.status === "SELECTED") ? <section className="w-full max-w-3xl rounded-card border border-card bg-base p-7"><TargetEditor onCancel={() => router.push("/targets")} onSave={target => { try { saveCustomTargets(session.id, [...loadCustomTargets(session.id), target]); router.push("/targets"); } catch { setError("브라우저 저장이 막혀 후보를 저장하지 못했습니다."); } }} /></section> : <><p>{readError || "새 아이디어를 입력한 뒤 이용자를 추가해 주세요."}</p><Link href="/new" className="text-brand">아이디어 적기</Link></>}{error && <p role="alert" className="text-conflict-fg">{error}</p>}</main>;
+  const [draft, setDraft] = useState<{ sessionId: string; target: Target } | null>(null);
+  if (loading) return <main className="p-20 text-ink-3" role="status">페르소나를 불러오고 있어요.</main>;
+  if (!session) return <main className="p-20"><p>{readError ?? "먼저 아이디어를 적어주세요."}</p><Link href="/new" className="mt-4 inline-block text-brand">아이디어 적기</Link></main>;
+  const card = returnTo === "/compare" ? session.cards.find(value => value.id === editId) : undefined;
+  const custom = loadCustomTargets(session.id);
+  const targets = [...session.targets.filter(t => !custom.some(c => c.id === t.id)), ...custom];
+  const initial = targets.find(t => t.id === editId);
+  const liveDraft = draft?.sessionId === session.id && draft.target.id === (initial?.id ?? "") ? draft.target : null;
+  const preview = liveDraft ? targetPersonas(session, [...targets.filter(t => t.id !== liveDraft.id), { ...liveDraft, id: liveDraft.id || "custom-preview" }]).find(p => p.id === (liveDraft.id || "custom-preview")) : targetPersonas(session, targets).find(p => p.id === editId);
+  const canEdit = session.status === "CREATED" || session.status === "SELECTED";
+  if (!canEdit || (editId && !(returnTo === "/compare" ? card : initial))) return <main className="flex grow flex-col items-center justify-center gap-4 p-20"><p>지금 수정할 수 있는 페르소나를 찾지 못했어요.</p><Link href={returnTo} className="text-brand">목록으로 돌아가기</Link></main>;
+  return <main className="flex grow flex-col gap-6 px-[clamp(20px,6vw,80px)] py-8">
+    <div><p className="font-mono text-xs tracking-widest text-muted">STEP 02</p><h1 className="mt-2 text-[28px] font-bold">{editId ? `${card?.presentation.display_name ?? preview?.name} 고치기` : "직접 만나볼 이용자 만들기"}</h1><p className="mt-2 text-sm text-ink-3">이름과 이용자 유형, 상황을 적어주세요.</p></div>
+    <div className="flex flex-wrap items-start gap-6"><section className="w-full max-w-2xl rounded-card border border-card bg-base p-7">
+      {card ? <PersonaEditor key={`${session.id}:${card.id}`} sessionId={session.id} initial={card} onCancel={() => router.push(returnTo)} onDone={() => router.push(returnTo)} /> : <TargetEditor key={`${session.id}:${editId ?? "new"}`} initial={initial ? { ...initial, display_name: preview?.name } : NEW_TARGET} onChange={target => setDraft({sessionId: session.id, target})} onCancel={() => router.push(returnTo)} onSave={target => {
+        try { const saved = loadCustomTargets(session.id); saveCustomTargets(session.id, [...saved.filter(t => t.id !== target.id), target]); router.push(returnTo); }
+        catch { setError("브라우저에서 페르소나를 저장하지 못했습니다."); }
+      }} />}
+      {error && <p role="alert" className="mt-4 text-sm text-conflict-fg">{error}</p>}
+    </section>{preview && !card && <aside className="flex w-full max-w-sm"><PersonaCard persona={preview} readOnly /></aside>}</div>
+  </main>;
 }

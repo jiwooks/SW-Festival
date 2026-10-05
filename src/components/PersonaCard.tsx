@@ -44,7 +44,6 @@ function CheckMark() {
 /**
  * 페르소나 카드. 02 추천 목록, 02-1 미리보기가 같은 모양을 쓴다.
  *
- * 구성 순서는 CLAUDE.md 9절에서 고정했다:
  * 이름·이용자 예시 → 상황 문장 → 판단 조건 → 확인할 점
  *
  * 의견이나 찬반 역할을 미리 정하지 않는다.
@@ -75,9 +74,9 @@ export function PersonaCard({
       }`}
     >
       <header className="flex items-center gap-[11px]">
-        <PersonaAvatar name={name} color={persona.color} size="lg" />
+        <PersonaAvatar name={name} color={persona.color} size="lg" face={{ id: name }} />
         <div className="flex grow flex-col gap-px">
-          <h3 className="text-base font-semibold">{name}</h3>
+          <h3 className="text-[16px] font-semibold">{name}</h3>
           {meta && <p className="text-xs text-muted">{meta}</p>}
         </div>
         {selected ? (
@@ -102,7 +101,8 @@ export function PersonaCard({
 
       <hr className="border-0 border-t border-divider" />
 
-      <div className="flex flex-col gap-[9px]">
+      {persona.notes && <AttrRow label="현재 대안" labelWidth={LABEL_W} align="start">{persona.notes}</AttrRow>}
+      {(interests.length > 0 || worries.length > 0) && <div className="flex flex-col gap-[9px]">
         <AttrRow label="관심사" labelWidth={LABEL_W} align="start">
           <span className="flex flex-wrap gap-[5px]">
             {interests.map((item) => (
@@ -121,6 +121,8 @@ export function PersonaCard({
           </span>
         </AttrRow>
       </div>
+
+      }
 
       {persona.quote && (
         <blockquote className="rounded-chip bg-panel px-3.5 py-[11px] text-sm leading-relaxed text-ink-2">

@@ -217,10 +217,16 @@ class ValidationResult(Model):
 class Selection(Model):
     target_ids: list[str] = Field(default_factory=list,max_length=3)
     custom_targets: list[Target] = Field(default_factory=list,max_length=3)
+    display_names: dict[str,str] = Field(default_factory=dict,max_length=3)
     @model_validator(mode='after')
     def check(self):
         if not 1 <= len(self.target_ids)+len(self.custom_targets) <= 3: raise ValueError('select/add 1-3 targets')
         if len(set(self.target_ids))!=len(self.target_ids): raise ValueError('duplicate selected target')
+        chosen=self.target_ids+[t.id for t in self.custom_targets]
+        if self.display_names:
+            if set(self.display_names)!=set(chosen): raise ValueError('Display names must match all selected targets')
+            self.display_names={key:NameEdit(display_name=value).display_name for key,value in self.display_names.items()}
+            if len(set(self.display_names.values()))!=len(chosen): raise ValueError('Use different display names')
         return self
 
 class AgentAnswer(Model):
@@ -340,6 +346,8 @@ class Session(Model):
     targets: list[Target]
     target_audits: list[TargetAudit] = Field(default_factory=list)
     cards: list[PersonaCard] = Field(default_factory=list)
+    # Presentation association only; never included in the model's persona core.
+    selected_target_ids: list[str] = Field(default_factory=list,max_length=3)
     validations: list[ValidationResult] = Field(default_factory=list)
     transcript: list[Utterance] = Field(default_factory=list)
     states: dict[str,SessionState] = Field(default_factory=dict)
