@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { UserMessage } from "@/components/chat/ChatParts";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
 import { streamChat } from "@/lib/chatStream";
+import { readIdeaDraft } from "@/lib/ideaStore";
 import type { ChatEvent, Persona, PersonaColor } from "@/lib/types";
 
 type DmMsg = { id: string; speakerId: string; text: string };
@@ -112,6 +113,8 @@ export function DmPanel({
         roomType: "dm",
         kind: "message",
         personaIds: [persona.id],
+        personas: [persona],
+        idea: readIdeaDraft(),
         round: 1,
         message: trimmed,
         history: history.map((m) => ({ speakerId: m.speakerId, text: m.text, round: 1 })),
@@ -156,9 +159,9 @@ export function DmPanel({
         className="fixed inset-y-0 right-0 z-30 flex w-[460px] flex-col border-l border-line bg-base"
       >
         <div className="flex items-center gap-3 border-b border-line px-[22px] py-[18px]">
-          <PersonaAvatar name={persona.name} color={persona.color} size="lg" />
+          <PersonaAvatar name={persona.name} color={persona.color} size="lg" face={persona} />
           <div className="flex grow flex-col gap-0.5">
-            <p className="text-base font-semibold">{persona.name}</p>
+            <p className="text-[16px] font-semibold">{persona.name}</p>
             <p className="font-mono text-[11px] tracking-[0.1em] text-muted">둘이서만</p>
           </div>
           <button

@@ -76,9 +76,9 @@ export function PersonaCard({
       }`}
     >
       <header className="flex items-center gap-[11px]">
-        <PersonaAvatar name={name} color={persona.color} size="lg" />
+        <PersonaAvatar name={name} color={persona.color} size="lg" face={persona} />
         <div className="flex grow flex-col gap-px">
-          <h3 className="text-base font-semibold">{name}</h3>
+          <h3 className="text-[16px] font-semibold">{name}</h3>
           {meta && <p className="text-xs text-muted">{meta}</p>}
         </div>
         {selected ? (

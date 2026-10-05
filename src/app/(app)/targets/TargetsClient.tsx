@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageFooterBar } from "@/components/PageFooterBar";
 import { PersonaCard } from "@/components/PersonaCard";
-import { MOCK_IDEA_SUMMARY, MOCK_PERSONAS, MOCK_PRESELECTED } from "@/lib/mock";
+import { MOCK_IDEA_SUMMARY, MOCK_PRESELECTED } from "@/lib/mock";
+import { useTargets } from "@/lib/targetStore";
 import type { Persona } from "@/lib/types";
 
 /** 대화는 1:3 으로 고정이다. 2명이면 핑퐁이고 4명 이상은 순차 발화라 읽기 벅차다. */
@@ -57,6 +59,9 @@ const SECONDARY_BTN =
   "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-btn border border-btn-border bg-base px-4 text-sm text-ink-2";
 
 export function TargetsClient() {
+  const router = useRouter();
+  // 추천 다섯 명(고친 내용 반영) + 02-1 에서 직접 만든 사람
+  const personas = useTargets();
   const [pickedIds, setPickedIds] = useState<string[]>(MOCK_PRESELECTED);
 
   const toggle = (id: string) =>
@@ -69,7 +74,7 @@ export function TargetsClient() {
     );
 
   // 고른 순서가 아니라 카드에 보이는 순서로 이름을 읽어준다
-  const picked = MOCK_PERSONAS.filter((p) => pickedIds.includes(p.id));
+  const picked = personas.filter((p) => pickedIds.includes(p.id));
   const full = pickedIds.length >= PICK_COUNT;
   const { title, description } = footerText(picked);
 
@@ -132,13 +137,14 @@ export function TargetsClient() {
         </div>
 
         <ul className="grid grid-cols-3 gap-[18px]">
-          {MOCK_PERSONAS.map((persona) => (
+          {personas.map((persona) => (
             <li key={persona.id} className="flex">
               <PersonaCard
                 persona={persona}
                 selected={pickedIds.includes(persona.id)}
                 selectDisabled={full}
                 onToggle={() => toggle(persona.id)}
+                onEdit={() => router.push(`/targets/new?edit=${persona.id}`)}
               />
             </li>
           ))}

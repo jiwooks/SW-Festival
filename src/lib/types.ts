@@ -32,6 +32,13 @@ export interface IdeaSummary {
 
 export type PersonaSource = "recommended" | "edited" | "custom";
 
+/**
+ * 페르소나 성향 원형 5개 — Moore 기술 수용 주기 (혁신가·비전가·실용주의·보수주의·회의주의).
+ * 웹 카드는 "구체적인 사람", 원형은 "무엇을 보고 써볼지 정하는가"(말투·판단 기준)다.
+ * 화면에는 안 보이고 아바타 표정에 쓴다. 모델 쪽에서 말투를 고를 때도 쓸 수 있다.
+ */
+export type Archetype = "innovator" | "visionary" | "pragmatist" | "conservative" | "skeptic";
+
 /** 페르소나 색은 5개 슬롯만 쓴다. 파랑·초록은 브랜드색이라 쓰지 않는다. */
 export type PersonaColor = 1 | 2 | 3 | 4 | 5;
 
@@ -73,6 +80,12 @@ export interface Persona {
    * 추천 5명 중 최소 1명은 true 여야 한다 — 전원이 호의적으로 답하는 것을 막는다.
    */
   skeptical?: boolean;
+  /**
+   * 화면에는 노출하지 않는 내부 값. 이 사람이 말할 때 쓸 모델 원형.
+   * 비어 있으면(직접 만든 사람 등) 모델 쪽에서 카드 내용으로 고른다.
+   * skeptical: true 인데 비어 있으면 skeptic 으로 본다.
+   */
+  archetype?: Archetype;
 }
 
 export type RoomType = "group" | "dm";
@@ -121,7 +134,16 @@ export interface ChatRequest {
   history: Pick<Message, "speakerId" | "text" | "round" | "concern">[];
   message?: string;
   targetId?: string;
+  /** 이 방 사람들의 카드 전체. 고친 카드·직접 만든 사람은 브라우저에만 있어서 함께 보낸다 */
+  personas?: Persona[];
+  /** 01 에서 입력한 아이디어. 첫 라운드 피칭과 1:1 맥락에 쓴다 */
+  idea?: ChatIdea;
 }
+
+/** 대화에 넘기는 아이디어 — 01 입력값 그대로(문자열) */
+export type ChatIdea = Partial<
+  Record<"oneLiner" | "field" | "description" | "problemAndDiff" | "background" | "revenueModel", string>
+>;
 
 /**
  * /api/chat 이 SSE(`data: {...}\n\n`)로 흘려보내는 이벤트.

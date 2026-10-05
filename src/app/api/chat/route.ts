@@ -22,10 +22,17 @@ export const runtime = "nodejs";
  * 개발용: /api/chat?simulateError=1 이면 두 번째 사람이 말하는 중에 끊는다 (08 에러 확인용).
  */
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as ChatRequest;
+  // 페이지를 떠나거나 멈추기로 보내는 도중에 끊긴 요청은 본문이 비어 있다 — 오류로 띄우지 않고 끝낸다
+  let body: ChatRequest;
+  try {
+    body = (await req.json()) as ChatRequest;
+  } catch {
+    return new Response(null, { status: 400 });
+  }
   const simulateError = req.nextUrl.searchParams.get("simulateError") === "1";
+  // 고친 카드·직접 만든 사람은 브라우저가 보낸 카드를 쓴다. 없으면 추천 원본
   const personas = body.personaIds
-    .map((id) => MOCK_PERSONAS.find((p) => p.id === id))
+    .map((id) => body.personas?.find((p) => p.id === id) ?? MOCK_PERSONAS.find((p) => p.id === id))
     .filter((p): p is Persona => Boolean(p));
 
   const encoder = new TextEncoder();
