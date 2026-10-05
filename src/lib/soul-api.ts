@@ -3,7 +3,7 @@ import { normalize } from "./korean-text";
 export const SESSION_KEY = "soul.qwen.session.v1";
 export const SESSION_EVENT = "soul:qwen-session";
 export type Evidence = { source_id: string; text: string; level: 0 | 1 | 2 | 3 | 4; consent_note: string };
-export type IdeaInput = { q1: string; q2: string; q3_1: string; q3_2: string; q4_1: string; q5: string; evidence: Evidence[] };
+export type IdeaInput = { q1: string; q2: string; q3: string; q3_1: string; q3_2: string; q4_1: string; q5: string; customer_type: "개인 고객에게 팝니다" | "기업·기관에 팝니다" | "아직 모르겠어요"; founder_strength: string; evidence: Evidence[] };
 export type Target = { display_name?: string; id: string; segment_name: string; why_relevant: string; problem_exposure: string; expected_current_alternative: string; buying_role: string; critical_unknowns: string[]; confidence: "low" | "medium" | "high"; evidence_level: number; evidence_ids: string[]; relevance: number };
 export type ReasoningRule = { id: string; trigger: string; value: string; tradeoff: string; conditional_choice: string; basis_fields: string[]; evidence_ids: string[]; unknowns: string[]; kind: "hypothesis" };
 export type PersonaCard = { id: string; presentation: { display_name: string; fictional: true }; session_state: PersonaState; immutable_core: {
@@ -23,7 +23,7 @@ export type Utterance = { id: string; persona_id: string; phase: "pre" | "group"
 export type Insight = { text: string; utterance_ids: string[]; evidence_ids: string[]; hypothesis: true; confidence: string; evidence_level: number };
 export type SoulSession = { id: string; input: IdeaInput; brief: Record<string, string | string[]>; targets: Target[]; cards: PersonaCard[]; selected_target_ids?: string[]; validations: { issues: { kind: string; detail: string }[]; advisory: { kind: string; detail: string }[] }[]; transcript: Utterance[]; states: Record<string, PersonaState>; status: string; lounge_mode?: string | null; mode: "qwen" | "mock"; error: string | null; pending_question: string | null; pending_speaker: string | null; report: { sections: Record<string, Insight[]>; notice: string } | null; report_revision: number | null; report_stale: boolean; report_generated_at?: string | null; suggestions: { id: string; question: string; topic: string; why: string; persona_id: string | null }[]; threads: { id: string; question: string; utterance_ids: string[]; status: string; remaining_issues: string[]; stop_reason: string }[]; chat_events: { before: number; role: string; content: string }[]; dialogue_runtime: { followup?: { key: [string, string | null, "auto" | "direct" | "interactive"]; done: boolean }; report_snapshot?: { done: boolean } }; usage: Record<string, unknown> };
 export type InputLimits = Record<string, number>;
-export const DEFAULT_LIMITS: InputLimits = { q1: 200, q2: 1000, q3_1: 1500, q3_2: 600, q4_1: 1000, evidence_text: 1500, evidence_total: 6000, evidence_count: 8, target_field: 300, question: 500 };
+export const DEFAULT_LIMITS: InputLimits = { q1: 200, q2: 1000, q3: 1500, q3_1: 1500, q3_2: 600, q4_1: 1000, founder_strength: 600, evidence_text: 1500, evidence_total: 6000, evidence_count: 8, target_field: 300, question: 500 };
 export function known(value?: string | null) { return value && value !== "UNKNOWN" ? normalize(value) : "아직 확인하지 못했어요"; }
 export function rememberSession(session: SoulSession) {
   if (typeof window !== "undefined") {

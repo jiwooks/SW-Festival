@@ -20,6 +20,21 @@ const CHECK_BG: Record<PersonaColor, string> = {
   5: "bg-persona-5",
 };
 
+const ACCENT: Record<PersonaColor, string> = {
+  1: "border-t-persona-1",
+  2: "border-t-persona-2",
+  3: "border-t-persona-3",
+  4: "border-t-persona-4",
+  5: "border-t-persona-5",
+};
+const TINT: Record<PersonaColor, string> = {
+  1: "bg-persona-1/10",
+  2: "bg-persona-2/10",
+  3: "bg-persona-3/10",
+  4: "bg-persona-4/10",
+  5: "bg-persona-5/10",
+};
+
 /** 카드 안 라벨 폭. 시안의 62px. */
 const LABEL_W = "w-[62px]";
 
@@ -69,7 +84,7 @@ export function PersonaCard({
 
   return (
     <article
-      className={`flex grow flex-col gap-3.5 rounded-card border-2 bg-base px-5 py-[18px] ${
+      className={`flex grow flex-col gap-3.5 rounded-card border-2 border-t-4 bg-base px-5 py-[18px] ${ACCENT[persona.color]} ${
         selected ? BORDER[persona.color] : "border-card"
       }`}
     >
@@ -97,11 +112,13 @@ export function PersonaCard({
       </header>
 
       {/* 이 카드의 본문. 구체적인 정황이 들어가야 대화가 뻔해지지 않는다 */}
-      <p className="text-sm leading-[1.75] text-ink-2">{persona.situation}</p>
+      <p className={`rounded-chip px-3.5 py-[11px] text-sm leading-[1.75] text-ink-2 ${TINT[persona.color]}`}>{persona.situation}</p>
 
       <hr className="border-0 border-t border-divider" />
 
       {persona.notes && <AttrRow label="현재 대안" labelWidth={LABEL_W} align="start">{persona.notes}</AttrRow>}
+      {!!persona.criticalUnknowns?.length && <AttrRow label="확인할 점" labelWidth={LABEL_W} align="start"><span className="flex flex-wrap gap-[5px]">{persona.criticalUnknowns.map((item, index) => <Chip key={index} tone="conflict">{item}</Chip>)}</span></AttrRow>}
+      {persona.evidenceLevel !== undefined && <AttrRow label="근거" labelWidth={LABEL_W} align="start"><Chip tone="action">L{persona.evidenceLevel} · {persona.evidenceLevel === 0 ? "AI가 추론한 가설" : "제공 자료 참고"}</Chip></AttrRow>}
       {(interests.length > 0 || worries.length > 0) && <div className="flex flex-col gap-[9px]">
         <AttrRow label="관심사" labelWidth={LABEL_W} align="start">
           <span className="flex flex-wrap gap-[5px]">
@@ -132,7 +149,7 @@ export function PersonaCard({
 
       {(persona.checkpoint || persona.reason) && (
         <div className="flex flex-col gap-[7px]">
-          {persona.checkpoint && (
+          {persona.checkpoint && !persona.criticalUnknowns?.length && (
             <AttrRow label="물어볼 것" labelWidth={LABEL_W}>
               {persona.checkpoint}
             </AttrRow>

@@ -28,7 +28,8 @@ export function targetPersonas(session: Pick<SoulSession, "cards" | "targets" | 
   }
   return targets.map(target => ({ id: target.id, name: named.get(target.id)!, segment: target.segment_name,
     situation: known(target.problem_exposure), interests: [], worries: [],
-    checkpoint: target.critical_unknowns.join(" · "), reason: known(target.why_relevant),
+    checkpoint: target.critical_unknowns.join(" · "), criticalUnknowns: target.critical_unknowns,
+    evidenceLevel: target.evidence_level, reason: known(target.why_relevant),
     notes: known(target.expected_current_alternative), color: presentationColor(target.id),
     source: target.id.startsWith("custom-") ? "custom" : target.display_name ? "edited" : "recommended" }));
 }

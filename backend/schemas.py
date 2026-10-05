@@ -30,6 +30,8 @@ class IdeaInput(Model):
     q4: str = ''
     q4_1: str = ''
     q5: str
+    customer_type: Literal['개인 고객에게 팝니다','기업·기관에 팝니다','아직 모르겠어요'] = '아직 모르겠어요'
+    founder_strength: str = ''
     evidence: list[Evidence] = Field(default_factory=list,max_length=8)
 
     @model_validator(mode='after')
@@ -54,6 +56,8 @@ class IdeaBrief(Model):
     realization: str = UNKNOWN
     go_to_market: str = UNKNOWN
     business_category: str
+    customer_type: str = UNKNOWN
+    founder_strength: str = UNKNOWN
     uncertainties: list[str] = Field(default_factory=list)
 
 class Target(Model):

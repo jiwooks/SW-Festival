@@ -11,7 +11,7 @@ from backend.orchestrator import Orchestrator
 def test_limits_reject_before_model_and_keep_legacy_readable(tmp_path):
     llm=LLMClient('mock'); api=TestClient(create_app(str(tmp_path/'limits.db'),llm))
     limits=api.get('/api/limits').json()
-    for key in ('q1','q2','q3_1','q3_2','q4_1'):
+    for key in ('q1','q2','q3','q3_1','q3_2','q4_1','founder_strength'):
         value={'q1':'idea','q5':'IT',key:'글'*(limits[key]+1)}
         assert api.post('/api/sessions',json=value).status_code==422
     assert not llm.records

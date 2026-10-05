@@ -10,6 +10,8 @@ export interface Persona {
   notes?: string;
   quote?: string;
   checkpoint?: string;
+  criticalUnknowns?: string[];
+  evidenceLevel?: number;
   reason?: string;
   color: PersonaColor;
   source: "recommended" | "edited" | "custom";

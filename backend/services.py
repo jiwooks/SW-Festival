@@ -36,12 +36,13 @@ def specific_paths(core):
 
 def parse_idea(i:IdeaInput)->IdeaBrief:
     def known(v): return v.strip() or UNKNOWN
-    # Q3-1 is intentionally preserved as founder wording, without inferred factual decomposition.
-    # Q3 and Q4 are visual section headings. Legacy q3/q4 values remain accepted for old saved JSON,
-    # while new requests derive the idea/realization text from Q3-1 and Q4-1.
-    return IdeaBrief(one_line=i.q1.strip(),background=known(i.q2),problem=known(i.q3_1),solution=known(i.q3_1 or i.q3),
+    # Preserve each founder statement in its own semantic field. Legacy records without q3
+    # still use q3_1 as the only available description; no missing audience is invented.
+    return IdeaBrief(one_line=i.q1.strip(),background=known(i.q2),problem=known(i.q3_1),solution=known(i.q3 or i.q3_1),
                      value_proposition=known(i.q3_1),revenue_model=known(i.q3_2),realization=known(i.q4_1 or i.q4),
                      go_to_market=known(i.q4_1),business_category=i.q5,
+                     customer_type=UNKNOWN if i.customer_type=='아직 모르겠어요' else i.customer_type,
+                     founder_strength=known(i.founder_strength),
                      uncertainties=['expected_user','use_context','current_alternatives','pricing'])
 
 def contrast_signature(t):

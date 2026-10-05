@@ -21,11 +21,22 @@ def test_unknown_preservation():
     with pytest.raises(ValueError): Selection(target_ids=['a']*2)
     with pytest.raises(ValueError): Selection(target_ids=['a','b','c','d'])
 
-def test_q3_q4_are_headings_and_subquestions_feed_brief():
+def test_legacy_idea_without_description_keeps_problem_wording():
     b=parse_idea(IdeaInput(q1='idea',q3_1='차별점과 해결 문제',q3_2='구독',q4_1='학교 PoC',q5='IT'))
     assert b.problem==b.solution==b.value_proposition=='차별점과 해결 문제'
     assert b.revenue_model=='구독'
     assert b.realization==b.go_to_market=='학교 PoC'
+
+def test_frontend_idea_fields_keep_description_problem_and_customer_type_separate():
+    i=IdeaInput(q1='예약 서비스',q3='동네 서점 재고 예약',q3_1='전화 확인이 번거롭다',
+                customer_type='개인 고객에게 팝니다',founder_strength='서점 운영 경험',q5='유통/물류')
+    b=parse_idea(i)
+    assert b.solution=='동네 서점 재고 예약'
+    assert b.problem=='전화 확인이 번거롭다'
+    assert b.customer_type=='개인 고객에게 팝니다'
+    assert b.founder_strength=='서점 운영 경험'
+    assert b.expected_user=='UNKNOWN'
+    assert parse_idea(IdeaInput(q1='예약 서비스',q5='IT')).customer_type=='UNKNOWN'
 
 def test_target_contrast(setup):
     _,_,_,ts,_=setup
