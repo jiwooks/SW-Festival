@@ -35,16 +35,16 @@ export function LoadingChatClient({
       <main className="flex grow flex-col items-center overflow-hidden py-6">
         <div className="flex w-[880px] flex-col gap-4">
           <RoundDivider round={2} label="서로 이야기 나누기" />
-          <PersonaMessage name={spoke.persona.name} color={spoke.persona.color}>
+          <PersonaMessage name={spoke.persona.name} color={spoke.persona.color} face={spoke.persona}>
             {spoke.text}
           </PersonaMessage>
-          <TypingMessage name={speaking.name} color={speaking.color} />
+          <TypingMessage name={speaking.name} color={speaking.color} face={speaking} />
           {stopped ? (
             <p className="text-[13px] text-ink-3" role="status">
               {speaking.name}님 답까지만 듣고 멈춰요. 이어서 들으려면 질문을 보내세요.
             </p>
           ) : (
-            <NextSpeaker name={next.name} color={next.color} onStop={() => setStopped(true)} />
+            <NextSpeaker name={next.name} color={next.color} face={next} onStop={() => setStopped(true)} />
           )}
         </div>
       </main>

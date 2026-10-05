@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
+import { IDEA_DRAFT_KEY } from "@/lib/ideaStore";
 
 /**
  * 모두의창업 지원서 문항 구조를 따른다. 한 칸짜리 입력으로 줄이지 않는다.
@@ -11,7 +12,7 @@ import { AppHeader } from "@/components/AppHeader";
  * 저장은 아직 서버가 없어서 브라우저에만 둔다. 헤더의 "저장됨" 표시가
  * 거짓말이 되지 않도록, 실제로 저장이 끝난 뒤에만 띄운다.
  */
-const DRAFT_KEY = "soul.idea.draft";
+const DRAFT_KEY = IDEA_DRAFT_KEY;
 
 type FieldName =
   | "oneLiner"
@@ -261,7 +262,7 @@ export function IdeaFormClient() {
         <section className="flex flex-col gap-[18px] rounded-card border border-card bg-base px-[26px] py-[22px]">
           <div className="flex items-center gap-5">
             <div className="flex grow flex-col gap-[5px]">
-              <h2 className="text-base font-semibold">실현 계획 · 자료</h2>
+              <h2 className="text-[16px] font-semibold">실현 계획 · 자료</h2>
               <p className="text-sm leading-relaxed text-ink-3">
                 사업화 계획과 본인 역량은 선택이에요. 이미 만든 기획서나 설문 결과가
                 있으면 올려주세요.

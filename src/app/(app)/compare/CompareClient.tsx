@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { Chip } from "@/components/Chip";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { MOCK_PERSONAS, MOCK_PRESELECTED } from "@/lib/mock";
+import { josa } from "@/lib/josa";
+import { MOCK_PRESELECTED } from "@/lib/mock";
+import { useTargets } from "@/lib/targetStore";
 import type { Persona } from "@/lib/types";
 
 /** "박민수" → "민수님". 세 글자 이름만 성을 뗀다. 아니면 그대로 부른다. */
@@ -32,14 +34,19 @@ function banner(picked: Persona[]) {
     };
   }
 
+  // 마지막 사람의 관심사 뒤에만 "을/를"이 붙는다. 받침에 맞춰 고른다
   const each = picked
-    .map((p) => `${honorific(p.name)}은 "${p.interests[0]}"`)
+    .map((p, i) => {
+      const kw = p.interests[0];
+      const particle = i === picked.length - 1 ? josa(kw, "을", "를").slice(kw.length) : "";
+      return `${honorific(p.name)}은 "${kw}"${particle}`;
+    })
     .join(", ");
 
   return {
     tone: "conflict" as const,
     title: "세 분이 보는 데가 서로 달라요",
-    body: `${each}을(를) 먼저 봅니다. 같은 아이디어를 놓고도 다른 데를 짚을 가능성이 커요.`,
+    body: `${each} 먼저 봅니다. 같은 아이디어를 놓고도 다른 데를 짚을 가능성이 커요.`,
   };
 }
 
@@ -66,7 +73,8 @@ function PencilIcon() {
 }
 
 export function CompareClient() {
-  const picked = MOCK_PERSONAS.filter((p) => MOCK_PRESELECTED.includes(p.id));
+  // 02 에서 고친 내용이 표에도 보이게 저장소에서 읽는다
+  const picked = useTargets().filter((p) => MOCK_PRESELECTED.includes(p.id));
   const { tone, title, body } = banner(picked);
 
   return (
@@ -125,21 +133,21 @@ export function CompareClient() {
                 key={p.id}
                 className="flex grow basis-0 items-center gap-[11px] border-l border-divider px-[18px] py-4"
               >
-                <PersonaAvatar name={p.name} color={p.color} size="lg" />
+                <PersonaAvatar name={p.name} color={p.color} size="lg" face={p} />
                 <div className="flex grow flex-col gap-px">
-                  <p className="text-base font-semibold">{p.name}</p>
+                  <p className="text-[16px] font-semibold">{p.name}</p>
                   <p className="text-xs text-muted">
                     {[p.age, p.gender, p.occupation].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                {/* TODO: 카드 고치기 패널 */}
-                <button
-                  type="button"
+                {/* 02 의 고치기와 같은 폼을 연다. 저장하면 이 화면으로 돌아온다 */}
+                <Link
+                  href={`/targets/new?edit=${p.id}&from=compare`}
                   aria-label={`${p.name} 고치기`}
-                  className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] border border-btn-border bg-base text-ink-3"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-btn-border bg-base text-ink-3"
                 >
                   <PencilIcon />
-                </button>
+                </Link>
               </div>
             ))}
           </div>

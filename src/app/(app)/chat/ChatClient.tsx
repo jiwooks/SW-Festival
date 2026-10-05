@@ -13,11 +13,14 @@ import {
   UserMessage,
 } from "@/components/chat/ChatParts";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/states/CenteredState";
+import { Logo } from "@/components/AppHeader";
+import { CenteredState, PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/states/CenteredState";
 import { ErrorState, remainingLabel } from "@/components/states/ErrorState";
 import { streamChat } from "@/lib/chatStream";
-import { MOCK_PERSONAS, MOCK_PRESELECTED, MOCK_QUESTION_POOL } from "@/lib/mock";
-import { roundLabel, type ChatEvent, type ChatRequest, type Message, type Persona } from "@/lib/types";
+import { readIdeaDraft } from "@/lib/ideaStore";
+import { MOCK_PRESELECTED, MOCK_QUESTION_POOL } from "@/lib/mock";
+import { useTargets } from "@/lib/targetStore";
+import { roundLabel, type ChatEvent, type ChatIdea, type ChatRequest, type Message, type Persona } from "@/lib/types";
 import { DmPanel } from "./DmPanel";
 
 type Msg = Pick<Message, "id" | "speakerId" | "text" | "round" | "concern">;
@@ -30,14 +33,25 @@ const USER = "user";
  *
  * 단체 대화가 메인이고, 페르소나는 /api/chat 이 정한 순서대로 한 명씩 토큰 단위로 말한다.
  * 1:1 패널이 열려 있는 동안 단체 대화는 멈추고, 멈췄다는 것을 화면에 표시한다.
- * TODO: 02·03 에서 고른 세 명이 넘어오면 MOCK_PRESELECTED 대신 그걸 쓴다.
+ * TODO: 02·03 에서 고른 세 명이 넘어오면 MOCK_PRESELECTED 대신 그걸 쓴다. (카드 내용은 targetStore 를 따른다)
  */
 export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
+  // 02 에서 고친 카드가 있으면 그걸 쓴다. 내용이 같으면 같은 배열을 유지해야 대화가 다시 시작되지 않는다
+  const targets = useTargets();
+  const pickedKey = JSON.stringify(MOCK_PRESELECTED.map((id) => targets.find((p) => p.id === id)));
   const personas = useMemo(
-    () => MOCK_PRESELECTED.map((id) => MOCK_PERSONAS.find((p) => p.id === id)).filter((p): p is Persona => !!p),
-    [],
+    () => (JSON.parse(pickedKey) as (Persona | undefined)[]).filter((p): p is Persona => !!p),
+    [pickedKey],
   );
   const byId = useCallback((id?: string) => personas.find((p) => p.id === id), [personas]);
+
+  // 01 에서 적은 아이디어. 브라우저에만 있어서 마운트 뒤에 읽는다 (undefined = 아직 안 읽음, null = 없음)
+  // 아이디어 없이 대화를 시작하면 페르소나가 들은 것도 없이 말하게 되므로 06 빈 상태로 01 에 보낸다
+  const [idea, setIdea] = useState<ChatIdea | null | undefined>(undefined);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 저장소에서 한 번 읽기
+    setIdea(readIdeaDraft() ?? null);
+  }, []);
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [round, setRound] = useState(1);
@@ -70,6 +84,8 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
         ...req,
         roomType: "group",
         personaIds: personas.map((p) => p.id),
+        personas,
+        idea: idea ?? undefined,
         history: messagesRef.current
           .filter((m) => m.text)
           .map(({ speakerId, text, round: r, concern }) => ({ speakerId, text, round: r, concern })),
@@ -130,18 +146,19 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
           : "/api/chat";
       void streamChat(request, onEvent, controller.signal, url);
     },
-    [personas],
+    [personas, idea],
   );
 
   // 들어오면 1라운드(처음 들은 생각)를 시작한다. 떠나면 끊는다.
   // (개발 모드 StrictMode 는 effect 를 두 번 돌린다 — 첫 요청은 정리에서 끊기고 두 번째가 산다)
   useEffect(() => {
+    if (!idea) return;
     // 외부 스트림(/api/chat)을 여는 자리다. run 이 "연결 중" 표시를 위해 상태를 바로 바꾸는데,
     // 그건 구독 시작을 알리는 한 번뿐이라 여기서만 규칙을 끈다 (01 IdeaFormClient 와 같은 예외)
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 스트림 구독 시작
     run({ kind: "round", round: 1 });
     return () => abortRef.current?.abort();
-  }, [run]);
+  }, [run, idea]);
 
   // 맨 아래를 보고 있을 때만 따라 내려간다 — 위를 읽는 중이면 끌어내리지 않는다
   const stick = useRef(true);
@@ -203,6 +220,21 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
   const next = byId(speaking?.nextId);
   const dmPersona = byId(dmId ?? undefined);
 
+  if (idea === null) {
+    return (
+      <CenteredState
+        icon={<Logo size={72} muted />}
+        title="아직 들려줄 아이디어가 없어요"
+        description="세 명이 들을 아이디어를 먼저 적어주세요. 한 줄이면 시작할 수 있어요."
+        actions={
+          <Link href="/new" className={PRIMARY_BUTTON}>
+            아이디어 적기
+          </Link>
+        }
+      />
+    );
+  }
+
   if (failed) {
     const who = byId(failed.personaId);
     return (
@@ -247,6 +279,9 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
         <div className="flex w-[880px] flex-col gap-4" aria-live="polite" aria-busy={streaming}>
           <ChatRoomHeader personas={personas} round={round} onOpenDm={openDm} />
 
+          {/* 세 명이 무엇을 듣고 말하는지 — 01 에서 적은 아이디어를 내가 처음 꺼낸 말로 보여준다 */}
+          {idea && <UserMessage>{idea.oneLiner}</UserMessage>}
+
           {messages.map((m, i) => {
             const newRound = i === 0 || messages[i - 1].round !== m.round;
             const p = byId(m.speakerId);
@@ -256,7 +291,7 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
                 {m.speakerId === USER ? (
                   <UserMessage>{m.text}</UserMessage>
                 ) : p ? (
-                  <PersonaMessage name={p.name} color={p.color}>
+                  <PersonaMessage name={p.name} color={p.color} face={p}>
                     {m.text}
                   </PersonaMessage>
                 ) : null}
@@ -265,9 +300,9 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
           })}
 
           {messages.length === 0 && <RoundDivider round={round} label={roundLabel(round)} />}
-          {speaker && waiting && <TypingMessage name={speaker.name} color={speaker.color} />}
+          {speaker && waiting && <TypingMessage name={speaker.name} color={speaker.color} face={speaker} />}
 
-          {streaming && next && <NextSpeaker name={next.name} color={next.color} onStop={stop} />}
+          {streaming && next && <NextSpeaker name={next.name} color={next.color} face={next} onStop={stop} />}
           {streaming && !next && speaker && (
             <div className="flex">
               <button
@@ -300,7 +335,7 @@ export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
                   onClick={() => openDm(mostConcerned.id)}
                   className="flex h-11 items-center gap-[9px] rounded-btn bg-conflict-bg px-4 text-sm text-conflict-fg"
                 >
-                  <PersonaAvatar name={mostConcerned.name} color={mostConcerned.color} size="sm" />
+                  <PersonaAvatar name={mostConcerned.name} color={mostConcerned.color} size="sm" face={mostConcerned} />
                   {mostConcerned.name}님이 가장 많이 걸려했어요 · 따로 물어보기
                 </button>
               )}

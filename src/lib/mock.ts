@@ -30,6 +30,7 @@ export const MOCK_PERSONAS: Persona[] = [
     reason: "1차 고객에 가장 가까움",
     color: 1,
     source: "recommended",
+    archetype: "innovator",
   },
   {
     id: "p2",
@@ -46,6 +47,7 @@ export const MOCK_PERSONAS: Persona[] = [
     reason: "가장 세게 반대할 사람",
     color: 2,
     source: "recommended",
+    archetype: "skeptic",
     skeptical: true,
   },
   {
@@ -63,6 +65,7 @@ export const MOCK_PERSONAS: Persona[] = [
     reason: "쓰는 사람과 돈 내는 사람이 다름",
     color: 4,
     source: "recommended",
+    archetype: "pragmatist",
   },
   {
     id: "p4",
@@ -79,6 +82,7 @@ export const MOCK_PERSONAS: Persona[] = [
     reason: "무료와 유료 사이 경계",
     color: 3,
     source: "recommended",
+    archetype: "conservative",
   },
   {
     id: "p5",
@@ -95,6 +99,7 @@ export const MOCK_PERSONAS: Persona[] = [
     reason: "시장이 더 넓은지 보려고",
     color: 5,
     source: "recommended",
+    archetype: "visionary",
   },
 ];
 

@@ -4,12 +4,18 @@ import { CreateTargetClient } from "./CreateTargetClient";
 
 export const metadata: Metadata = { title: "타깃 직접 만들기" };
 
-/** 시안: design/screens/02-1-create-target.html */
-export default function Page() {
+/** 시안: design/screens/02-1-create-target.html — ?edit=<id> 면 02 카드의 "고치기" (같은 폼에 그 사람 내용이 채워진다) */
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string; from?: string }>;
+}) {
+  const { edit, from } = await searchParams;
   return (
     <>
       <AppHeader current="02" />
-      <CreateTargetClient />
+      {/* 03 비교표에서 고치러 왔으면 저장·취소 뒤 03 으로 돌아간다 */}
+      <CreateTargetClient editId={edit} returnTo={from === "compare" ? "/compare" : "/targets"} />
     </>
   );
 }

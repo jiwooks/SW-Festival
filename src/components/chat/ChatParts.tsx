@@ -1,9 +1,9 @@
-import { PersonaAvatar } from "@/components/PersonaAvatar";
+import { PersonaAvatar, type AvatarFace } from "@/components/PersonaAvatar";
 import type { PersonaColor } from "@/lib/types";
 
 /**
  * 단체 대화(04)와 발화 대기(07-1)가 함께 쓰는 조각.
- * 페르소나는 색 + 이니셜 + 이름 3중으로 표시한다 (CLAUDE.md 7절).
+ * 페르소나는 색 + 얼굴 그림 + 이름 3중으로 표시한다 (CLAUDE.md 7절).
  */
 
 const NAME_COLOR: Record<PersonaColor, string> = {
@@ -39,15 +39,17 @@ export function RoundDivider({ round, label }: { round: number; label: string })
 export function PersonaMessage({
   name,
   color,
+  face,
   children,
 }: {
   name: string;
   color: PersonaColor;
+  face?: AvatarFace;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex gap-[11px]">
-      <PersonaAvatar name={name} color={color} />
+      <PersonaAvatar name={name} color={color} face={face} />
       <div className="flex max-w-[620px] flex-col gap-[5px]">
         <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}</p>
         <div className="rounded-[4px_14px_14px_14px] border border-card bg-base px-4 py-[13px] text-[15px] leading-[1.72] text-ink-2">
@@ -59,10 +61,10 @@ export function PersonaMessage({
 }
 
 /** 지금 말하는 중인 페르소나. 점 세 개가 그 사람 색으로 깜빡인다. */
-export function TypingMessage({ name, color }: { name: string; color: PersonaColor }) {
+export function TypingMessage({ name, color, face }: { name: string; color: PersonaColor; face?: AvatarFace }) {
   return (
     <div className="flex gap-[11px]" role="status">
-      <PersonaAvatar name={name} color={color} />
+      <PersonaAvatar name={name} color={color} face={face} />
       <div className="flex flex-col gap-[5px]">
         <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}</p>
         <div className="flex items-center gap-1.5 rounded-[4px_14px_14px_14px] border border-card bg-base px-[18px] py-4">
@@ -85,10 +87,12 @@ export function TypingMessage({ name, color }: { name: string; color: PersonaCol
 export function NextSpeaker({
   name,
   color,
+  face,
   onStop,
 }: {
   name: string;
   color: PersonaColor;
+  face?: AvatarFace;
   onStop?: () => void;
 }) {
   return (
@@ -96,7 +100,7 @@ export function NextSpeaker({
       <div className="flex h-9 items-center gap-[9px] rounded-full bg-bubble px-3.5">
         <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-muted">다음</span>
         <span className="flex items-center gap-1.5">
-          <PersonaAvatar name={name} color={color} size="sm" />
+          <PersonaAvatar name={name} color={color} size="sm" face={face} />
           <span className="text-[13px] text-ink-2">{name}</span>
         </span>
       </div>
@@ -199,7 +203,7 @@ export function ChatRoomHeader({
   round,
   onOpenDm,
 }: {
-  personas: { id: string; name: string; color: PersonaColor }[];
+  personas: ({ id: string; name: string; color: PersonaColor } & AvatarFace)[];
   round: number;
   onOpenDm: (id: string) => void;
 }) {
@@ -208,12 +212,12 @@ export function ChatRoomHeader({
       <div className="flex shrink-0" aria-hidden="true">
         {personas.map((p, i) => (
           <span key={p.id} className={`rounded-full border-2 border-alt ${i > 0 ? "-ml-[9px]" : ""}`}>
-            <PersonaAvatar name={p.name} color={p.color} />
+            <PersonaAvatar name={p.name} color={p.color} face={p} />
           </span>
         ))}
       </div>
       <div className="flex grow flex-col gap-0.5">
-        <h1 className="text-base font-semibold">
+        <h1 className="text-[16px] font-semibold">
           {personas.length === 3 ? "세 명과" : `${personas.length}명과`} 함께 이야기하는 중
         </h1>
         <p className="font-mono text-[11px] tracking-[0.1em] text-muted">
@@ -231,7 +235,7 @@ export function ChatRoomHeader({
             className="flex size-11 items-center justify-center rounded-full"
           >
             <span className="rounded-full border-2 border-base">
-              <PersonaAvatar name={p.name} color={p.color} />
+              <PersonaAvatar name={p.name} color={p.color} face={p} />
             </span>
           </button>
         ))}
