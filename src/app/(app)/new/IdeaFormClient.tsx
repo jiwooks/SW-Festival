@@ -95,7 +95,7 @@ export function IdeaFormClient() {
   }
   return <>
     <AppHeader current="01" right={savedAt ? <p className="text-[13px] text-muted">방금 저장됨</p> : undefined} />
-    <main className="flex grow flex-col gap-5 px-[clamp(20px,8vw,120px)] py-[34px]">
+    <main className="flex grow flex-col gap-5 px-[26px] py-[34px] lg:px-[120px]">
       <div className="flex flex-col gap-2"><p className="font-mono text-xs tracking-[0.14em] text-muted">STEP 01</p><h1 className="text-[30px] font-bold leading-[1.36] tracking-[-0.022em]">아이디어를 문장으로 적습니다</h1><p className="text-[15px] leading-[1.7] text-ink-3">여기 적은 내용을 바탕으로 만나볼 사람을 찾아드려요. 별표 표시된 네 칸만 채우면 시작할 수 있어요.</p></div>
       <section className={CARD}><div className="flex items-center gap-2.5"><h2 className={EYEBROW}>기본</h2><p className="text-[13px] text-muted">필수 2개</p></div>
         {field("q1", "아이디어를 한 줄로 소개해주세요", { required: true })}
