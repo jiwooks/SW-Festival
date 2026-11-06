@@ -85,3 +85,15 @@ def test_report_grammar_requires_all_sections():
     grammar=Report.model_json_schema()['properties']['sections']
     assert set(grammar['required'])==set(SECTIONS) and not grammar['additionalProperties']
     assert set(grammar['properties'])==set(SECTIONS)
+
+
+def test_drop_spoken_sentences_removes_copied_sentences_only():
+    from backend.context import drop_spoken_sentences
+    earlier = ['도매 가격 변동과 품질 편차로 운영 비용이 늘어납니다. 정기 발주 전환 의지는 아직 확인되지 않았습니다.']
+    text = ('도매 가격 변동과 품질 편차로 운영 비용이 늘어납니다. 정기 발주 전환 의지는 아직 확인되지 않았습니다. '
+            '배송 시간이 오전에 맞춰진다면 매장 준비 부담이 줄어듭니다.')
+    assert drop_spoken_sentences(text, earlier) == '배송 시간이 오전에 맞춰진다면 매장 준비 부담이 줄어듭니다.'
+    assert drop_spoken_sentences(earlier[0], earlier) == ''
+    unchanged = '전혀 다른 조건을 말합니다.\n농가 쪽 출하 일정이 먼저 확정돼야 판단할 수 있습니다.'
+    assert drop_spoken_sentences(unchanged, earlier) == unchanged
+    assert drop_spoken_sentences('네. 좋습니다.', earlier) == '네. 좋습니다.'

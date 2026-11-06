@@ -24,6 +24,25 @@ export function displayChatText(text: string, speakerId?: string, participants: 
   return normalize(prose);
 }
 
+type TurnRef = { id: string; persona_id: string; phase: string; thread_id: string | null };
+type ThreadRef = { id: string; interaction?: "auto" | "direct" | "interactive" | null };
+
+/**
+ * 1:1 패널에 보일 발화: 이 사람에게 지정해서 물은 질문의 답만. 단체 질문의 답은 빼고 단체 대화에만 남긴다.
+ * interaction이 없는 예전 기록은 그 질문에 이 사람 혼자 답했을 때만 1:1로 본다.
+ */
+export function directTurns<T extends TurnRef>(transcript: T[], threads: ThreadRef[], personaId: string): T[] {
+  const group = transcript.filter(turn => turn.phase === "group");
+  const isDirect = (threadId: string | null) => {
+    const thread = threads.find(item => item.id === threadId);
+    if (!thread) return false;
+    if (thread.interaction) return thread.interaction === "direct";
+    const speakers = new Set(group.filter(turn => turn.thread_id === thread.id).map(turn => turn.persona_id));
+    return speakers.size === 1 && speakers.has(personaId);
+  };
+  return group.filter(turn => turn.persona_id === personaId && isDirect(turn.thread_id));
+}
+
 export function chatInteractionLabel(interaction?: "auto" | "direct" | "interactive"): string {
   return interaction === "direct" ? "지정 답변" : "모두 · 상호 대화";
 }

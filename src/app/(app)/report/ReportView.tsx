@@ -37,7 +37,7 @@ function Evidence({ ids, evidenceIds = [], sources, level }: {
   const unique = [...new Set(ids)];
   return (
     <div className="mt-2 text-[11px] leading-relaxed text-muted">
-      {level !== undefined ? <p>{`L${level} · ${level === 0 ? "AI 시뮬레이션 가설" : "제공 자료를 참고한 가설"}`}</p> : null}
+      {level !== undefined ? <p>{level === 0 ? "AI 시뮬레이션 가설" : "제공 자료를 참고한 가설"}</p> : null}
       {evidenceIds.length ? <p className="break-all">자료 ID: {evidenceIds.join(", ")}</p> : null}
       {unique.length ? (
         <details className="mt-1">
@@ -81,20 +81,20 @@ export function reportText(report: SoulReportView) {
     `참여자: ${people.map((p) => `${p.name} (${p.segment})`).join(" · ")}`,
     `생성일: ${report.meta.generated_at ? new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "medium", timeStyle: "short" }).format(new Date(report.meta.generated_at)) : "미기록"} · 공개 발언 ${report.meta.public_turn_count}개`,
     report.meta.stale ? "이 리포트 이후 대화가 추가되었습니다. 현재 저장된 시점의 내용입니다." : "",
-    "", "결론", ...report.conclusion.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ") || "미확인"} · L${x.evidence_level}`),
+    "", "결론", ...report.conclusion.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ") || "미확인"}`),
     "", ...reportMetrics(report).map((metric) => `${metric.label}: ${metric.value}`),
     "", "쟁점", ...report.topics.flatMap((topic, i) => [
       `${i + 1}. ${topic.question} — ${verdict(topic, people).label}`,
       ...topic.positions.map((p) => `${p.name} (${STANCE[p.stance].label}): ${p.content}\n  이유: ${p.reason}\n  근거: ${p.utterance_id || "해당 질문의 발화 없음"}`),
       ...topic.insights.map((x) => `해석: ${x.text}\n  근거: ${x.utterance_ids.join(", ")}`),
     ]),
-    "", "대화에서 얻은 인사이트", ...report.new_insights.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ")} · L${x.evidence_level}`),
+    "", "대화에서 얻은 인사이트", ...report.new_insights.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ")}`),
     "", "입장 표현 변화", ...report.changes.map((x) => `${x.name} · ${x.question}: ${STANCE[x.before.stance].label} → ${STANCE[x.after.stance].label}\n  이유: ${x.after.reason}\n  근거: ${x.utterance_ids.join(", ")}`),
     "", "이어서 물어볼 질문", ...report.followups.map((x) => x.question),
     "", "확인하지 못한 것", ...report.unknowns.map((x) => x.text),
     "", "실제로 만나서 물어볼 것", "누구를", ...people.map((p) => p.segment),
     "무엇을", ...report.real_interview.map((x, i) => `${i + 1}. ${x.text}`),
-    "", "8개 분석 항목", ...Object.entries(report.sections).flatMap(([section, rows]) => [SECTION_LABELS[section] || section, ...rows.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ") || "미확인"} · 자료: ${x.evidence_ids.join(", ") || "없음"} · L${x.evidence_level}`)]),
+    "", "8개 분석 항목", ...Object.entries(report.sections).flatMap(([section, rows]) => [SECTION_LABELS[section] || section, ...rows.map((x) => `${x.text}\n  근거: ${x.utterance_ids.join(", ") || "미확인"} · 자료: ${x.evidence_ids.join(", ") || "없음"}`)]),
     "", "근거 발화 원문", ...report.sources.map((source) => `${source.id} · ${source.name} · ${source.phase}\n${source.content}\n이유: ${source.reason}`),
     "", report.meta.metrics_notice,
   ].join("\n");

@@ -61,3 +61,20 @@ test('known public utterance references show their owner while original literal 
   const text='동료의 조건 [u6]을 비교합니다. [u99] "[u6]" ` [u6] ` https://example.org/[u6]';
   assert.equal(chat.displayChatText(text,'p1',people,{u6:'김하린'}),'동료의 조건 [김하린님 발언]을 비교합니다. [u99] "[u6]" ` [u6] ` https://example.org/[u6]');
 });
+
+test('the 1:1 panel shows only questions addressed to that persona, not group answers', () => {
+  const turn = (id, persona_id, thread_id) => ({ id, persona_id, phase: 'group', thread_id });
+  const transcript = [
+    turn('u1', 'p1', 'th1'), turn('u2', 'p2', 'th1'), turn('u3', 'p1', 'th1'),   // group question, p1 spoke twice
+    turn('u4', 'p1', 'th2'),                                                     // direct to p1
+    turn('u5', 'p2', 'th3'),                                                     // direct to p2
+    turn('u6', 'p1', 'th4'),                                                     // legacy thread, p1 alone
+    turn('u7', 'p1', 'th5'), turn('u8', 'p3', 'th5'),                            // legacy thread, group
+    { id: 'u9', persona_id: 'p1', phase: 'pre', thread_id: 'th2' },              // private turn never shown
+  ];
+  const threads = [{ id: 'th1', interaction: 'auto' }, { id: 'th2', interaction: 'direct' }, { id: 'th3', interaction: 'direct' },
+    { id: 'th4' }, { id: 'th5', interaction: null }];
+  assert.deepEqual(chat.directTurns(transcript, threads, 'p1').map(t => t.id), ['u4', 'u6']);
+  assert.deepEqual(chat.directTurns(transcript, threads, 'p2').map(t => t.id), ['u5']);
+  assert.deepEqual(chat.directTurns(transcript, threads, 'p3').map(t => t.id), []);
+});

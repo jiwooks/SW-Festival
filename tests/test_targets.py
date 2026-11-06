@@ -20,7 +20,36 @@ class BadBatch(LLMClient):
                 for t,name in zip(result.targets,BAD_NAMES):t.segment_name=name
         return result
 
-def test_task_batch_is_repaired_once_without_static_customer_fallback():
+@pytest.fixture
+def strict(monkeypatch):
+    monkeypatch.setenv('TARGET_REVIEW','strict')
+
+def test_lenient_default_skips_model_review_and_regenerates_only_for_bare_labels():
+    llm=BadBatch();audits=[]
+    ts=generate_targets(parse_idea(IdeaInput(q1='인터뷰 준비 도구',q5='IT')),[],llm,audits)
+    assert llm.attempts==2 and len(llm.feedback[1])==7
+    assert [r['task'] for r in llm.records]==['targets','targets']
+    assert len(ts)==6 and not set(t.segment_name for t in ts)&set(BAD_NAMES)
+
+def test_lenient_keeps_usable_targets_even_if_some_are_bare_labels():
+    class Partial(LLMClient):
+        def call(self,task,payload,schema,**kw):
+            result=super().call(task,payload,schema,**kw)
+            if task=='targets':
+                for t,name in zip(result.targets[:3],BAD_NAMES):t.segment_name=name
+            return result
+    llm=Partial('mock')
+    ts=generate_targets(parse_idea(IdeaInput(q1='idea',q5='IT')),[],llm)
+    assert len(ts)==3 and [r['task'] for r in llm.records]==['targets']
+
+def test_lenient_returns_even_when_model_reviewer_would_reject():
+    class Critic(LLMClient):
+        def call(self,task,payload,schema,**kw):
+            assert task!='target_review'
+            return super().call(task,payload,schema,**kw)
+    assert len(generate_targets(parse_idea(IdeaInput(q1='idea',q5='IT')),[],Critic('mock')))==6
+
+def test_task_batch_is_repaired_once_without_static_customer_fallback(strict):
     llm=BadBatch();audits=[]
     ts=generate_targets(parse_idea(IdeaInput(q1='인터뷰 준비 도구',q5='IT')),[],llm,audits)
     assert llm.attempts==2 and llm.feedback[0] is None and len(llm.feedback[1])==6
@@ -29,6 +58,22 @@ def test_task_batch_is_repaired_once_without_static_customer_fallback():
     assert [t.segment_name for t in audits[0].targets]==BAD_NAMES
     assert len(ts)==6 and not set(t.segment_name for t in ts)&set(BAD_NAMES)
     assert all(t.evidence_level==0 and t.confidence=='low' for t in ts)
+
+def test_claimed_level_above_cited_source_is_capped_not_fatal():
+    # User uploads start as unverified L0; the model citing them at a higher level must not abort recommendation.
+    from backend.schemas import Evidence,TargetBatch,EvidenceLevel
+    from backend.services import checked_target_sources
+    evidence=[Evidence(source_id='s0',text='업로드 자료',level=0),Evidence(source_id='s2',text='인터뷰',level=2)]
+    make=lambda n,lvl,ids,conf: Target(segment_name=f'이용자{n}',why_relevant='이유',problem_exposure=f'상황{n}',
+        evidence_level=lvl,evidence_ids=ids,confidence=conf)
+    batch=TargetBatch(targets=[make(0,3,['s0'],'high'),make(1,3,['s2'],'high'),make(2,1,['s0','s2'],'medium'),
+                               make(3,2,['s2'],'medium'),make(4,0,[],'high'),make(5,0,['s0'],'low')])
+    got={t.segment_name:t for t in checked_target_sources(batch,evidence)}
+    assert got['이용자0'].evidence_level==EvidenceLevel.L0 and got['이용자0'].confidence=='low'
+    assert got['이용자1'].evidence_level==EvidenceLevel.L2 and got['이용자1'].confidence=='high'
+    assert got['이용자2'].evidence_level==EvidenceLevel.L0 and got['이용자2'].confidence=='low'
+    assert got['이용자3'].evidence_level==EvidenceLevel.L2
+    assert got['이용자4'].evidence_level==EvidenceLevel.L0 and got['이용자4'].confidence=='low'
 
 def test_repeated_invalid_batch_fails_bounded_without_saving_empty_session(tmp_path):
     llm=BadBatch(always=True);api=TestClient(create_app(str(tmp_path/'bad.db'),llm))
@@ -48,7 +93,7 @@ def test_valid_participant_labels_are_not_a_domain_allowlist(name):
     assert target_label_issue(Target(segment_name=name,why_relevant='관련 있음')) is None
 
 @pytest.mark.parametrize('broken',['missing','duplicate','unrelated','not_person'])
-def test_semantic_reviewer_must_cover_all_and_pass_type_and_fit(broken):
+def test_semantic_reviewer_must_cover_all_and_pass_type_and_fit(broken,strict):
     class Critic(LLMClient):
         def call(self,task,payload,schema,**kw):
             result=super().call(task,payload,schema,**kw)
@@ -74,7 +119,15 @@ def test_unchanged_approved_selection_reuses_review_and_exact_segment(tmp_path):
     assert not any(x['task']=='target_review' for x in llm.records[start:])
     assert r.json()['cards'][0]['immutable_core']['identity_context']['segment']==s['targets'][0]['segment_name']
 
-def test_new_user_target_reviewed_before_build_and_never_silently_rewritten(tmp_path):
+def test_lenient_user_target_builds_without_model_review(tmp_path):
+    api,llm,s=api_session(tmp_path);start=len(llm.records)
+    label='온라인 주문을 받는 동네 카페'
+    r=api.post(f'/api/sessions/{s["id"]}/select',json={'custom_targets':[{'segment_name':label,'why_relevant':'주문 준비 상황'}]})
+    assert r.status_code==200,r.text
+    assert not any(x['task']=='target_review' for x in llm.records[start:])
+    assert r.json()['cards'][0]['immutable_core']['identity_context']['segment']==label
+
+def test_new_user_target_reviewed_before_build_and_never_silently_rewritten(tmp_path,strict):
     api,llm,s=api_session(tmp_path);start=len(llm.records)
     label='온라인 주문을 받는 동네 카페'
     r=api.post(f'/api/sessions/{s["id"]}/select',json={'custom_targets':[{'segment_name':label,'why_relevant':'주문 준비 상황'}]})
@@ -125,3 +178,9 @@ def test_ui_wording_keeps_target_and_persona_stages_distinct(tmp_path):
     assert '타깃 추천받기 →' in html and '타깃 가설 추천받기' not in html
     assert '타깃 다시 추천받기' in html and '어떤 이용자인가요?' in js
     assert '페르소나 생성·검사' in html and '프로필' in js
+
+def test_common_hanja_job_titles_are_written_in_hangul():
+    from backend.services import fix_hanja
+    assert fix_hanja('지역 식당 및 카페店主') == '지역 식당 및 카페점주'
+    assert fix_hanja('소규모 農家 經營者') == '소규모 농가 경영자'
+    assert fix_hanja('한글만 있는 이름') == '한글만 있는 이름'

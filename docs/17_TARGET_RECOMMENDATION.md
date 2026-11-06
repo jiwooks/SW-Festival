@@ -17,3 +17,12 @@ UI cards explicitly label the participant group, recommendation reason, problem 
 Long recommendation reasons/situations/expected alternatives use multiline fields. Selection reads both inputs and textareas, preserves user edits and rejects missing participant/reason fields. Static UI assets are versioned so a normal refresh fetches the new layout.
 
 The first real selection attempt revealed fabricated reasoning-rule source IDs and three failed builds. The builder request grammar now permits only supplied IDs for rules/anchors, and only L2+ source IDs for timeline events. With no sources, rule evidence IDs, anchors and timeline are constrained to empty lists. The prompt distinguishes hypothetical basis_fields from source IDs. The existing exact-quote/UNKNOWN validator remains in place; this does not establish full semantic fidelity. The failed attempt is preserved separately from the successful rerun.
+
+## 2026-11-06 기본값 변경: 관대한 추천 (`TARGET_REVIEW`)
+
+실제 사용에서 4B 검사 모델이 프롬프트와 다르게 유효한 구매자(예: 음식점 원자재 구매 담당)까지 "비고객"으로 탈락시켜, 추천 전체가 실패하는 일이 반복됐다. 그래서 기본값을 **lenient**로 바꿨다.
+
+- 모델 검사(`target_review`)를 호출하지 않는다. 결정적으로 거르는 것은 할 일·주제형 이름을 막는 로컬 검사(`target_label_issue`)뿐이다. 근거 수준은 막지 않고 인용 자료 중 가장 낮은 수준으로 낮춘다.
+- 로컬 검사를 통과한 후보가 3개 미만일 때만 한 번 다시 생성한다. 그래도 모자라면 남은 후보를 그대로 반환하고, 0개일 때만 실패한다.
+- 선택 단계에서도 모델 검사 없이 로컬 검사와 중복 검사만 한다.
+- `TARGET_REVIEW=strict`로 실행하면 위 규칙(검사·재생성·실패)을 원래대로 적용한다.

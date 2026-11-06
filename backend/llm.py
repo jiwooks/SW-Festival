@@ -81,7 +81,10 @@ class LLMClient:
         if urlparse(self.base_url).hostname not in ('localhost','127.0.0.1','::1'): raise ValueError('local LLM URL required')
         self.model=os.getenv('LLM_MODEL','persona-qwen')
         self.context_size=context_size or int(os.getenv('CONTEXT_SIZE','8192'))
-        self.http=httpx.Client(timeout=float(os.getenv('LLM_TIMEOUT','180')),transport=transport,trust_env=False)
+        # Optional: only for a remote llama-server started with --api-key-file behind an SSH tunnel.
+        key=os.getenv('LLM_API_KEY','')
+        self.http=httpx.Client(timeout=float(os.getenv('LLM_TIMEOUT','180')),transport=transport,trust_env=False,
+                               headers={'Authorization':f'Bearer {key}'} if key else None)
         self.lock=threading.Lock(); self.records=[]; self.server_info={}; self.info_at=0
 
     def server_context(self):

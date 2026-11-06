@@ -96,7 +96,7 @@ class GuidedConversation(AdaptiveConversation):
         r=s.dialogue_runtime.get('followup'); key=[question,persona_id,interaction]
         if r and not r.get('done') and r['key']!=key: raise ValueError('미완료 메시지를 같은 내용으로 재개하세요.')
         if not r or r.get('done'):
-            thread=ConversationThread(id=f'th{len(s.threads)+1}',question=question); s.threads.append(thread); self.thread_context(thread)
+            thread=ConversationThread(id=f'th{len(s.threads)+1}',question=question,interaction=interaction); s.threads.append(thread); self.thread_context(thread)
             pid=persona_id or self.choose(list(self.agents),question); scope=[pid] if interaction=='direct' else list(self.agents)
             r={'key':key,'count':0,'pending':{'pid':pid,'question':question,'reply':None,'stage':'contribution'},'done':False,
                'thread_id':thread.id,'scope':scope,'interaction':interaction,'contributed':[],'crossed':[],'handled_requests':[]}
@@ -114,7 +114,9 @@ class GuidedConversation(AdaptiveConversation):
             t.thread_id=thread.id; thread.utterance_ids.append(t.id); r['count']+=1
             bucket='contributed' if p['stage']=='contribution' else 'crossed' if p['stage']=='cross_response' else None
             if bucket and p['pid'] not in r[bucket]: r[bucket].append(p['pid'])
-            r['pending']=self.next_action(r,thread); save(s)
+            # A turn with nothing new means the exchange is exhausted; stop instead of asking for more copies.
+            r['pending']=None if 'response_repeat_unresolved' in t.quality_flags and p['stage']!='contribution' else self.next_action(r,thread)
+            save(s)
         issues=[issue for t in s.transcript if t.id in thread.utterance_ids for issue in t.unresolved_issues]
         if r['pending']: issues.append(r['pending']['question'][-140:])
         thread.remaining_issues=list(dict.fromkeys(issues))[-8:]; thread.status='returned_to_user'

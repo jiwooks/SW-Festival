@@ -1,4 +1,4 @@
-import json,re,uuid
+import json,os,re,uuid
 from .schemas import *
 from .limits import check_target
 from .quantities import quantity_texts, unsupported_quantities
@@ -85,13 +85,39 @@ def review_targets(brief,targets,llm):
             issues.append(f'{item.index+1}. {t.segment_name}: {local or item.reason}')
     return review,issues
 
-def checked_target_sources(batch,evidence):
+# Small Qwen models sometimes mix Chinese job titles into Korean (e.g. '카페店主'). Narrow, known fixes only.
+HANJA_FIXES={'經營者':'경영자','店主':'점주','店長':'점장','社長':'사장','農家':'농가','經營':'경영','代表':'대표','擔當者':'담당자','担当者':'담당자'}
+
+def fix_hanja(text):
+    for han,kor in HANJA_FIXES.items(): text=text.replace(han,kor)
+    return text
+
+def strict_target_review():
+    """TARGET_REVIEW=strict restores the original gate: any semantic-review rejection regenerates/fails.
+    Default (lenient): only bare task/topic labels are dropped; the model review is not run."""
+    return os.getenv('TARGET_REVIEW','lenient').strip().lower()=='strict'
+
+def checked_target_sources(batch,evidence,strict=True):
     known={e.source_id:e for e in evidence}; seen=set(); targets=[]
     for t in sorted(batch.targets,key=lambda t:-t.relevance):
-        check_target(t)
-        if not set(t.evidence_ids)<=set(known): raise ValueError('target invented evidence')
+        for field in ('segment_name','why_relevant','problem_exposure','expected_current_alternative','buying_role'):
+            setattr(t,field,fix_hanja(getattr(t,field)))
+        t.critical_unknowns=[fix_hanja(x) for x in t.critical_unknowns]
+        try: check_target(t)
+        except ValueError:
+            if strict: raise
+            continue
+        if not set(t.evidence_ids)<=set(known):
+            if strict: raise ValueError('target invented evidence')
+            t.evidence_ids=[x for x in t.evidence_ids if x in known]
         if not t.evidence_ids: t.evidence_level=EvidenceLevel.L0; t.confidence='low'
-        elif t.evidence_level>min(known[x].level for x in t.evidence_ids): raise ValueError('target level exceeds cited evidence')
+        else:
+            # The model may claim a stronger level than its sources (e.g. unverified L0 uploads).
+            # Cap it at the weakest cited source instead of failing the whole recommendation.
+            cap=min(known[x].level for x in t.evidence_ids)
+            if t.evidence_level>cap:
+                t.evidence_level=cap
+                if cap==EvidenceLevel.L0: t.confidence='low'
         sig=contrast_signature(t)
         if sig in seen: continue
         seen.add(sig); t.id=f't{len(targets)+1}'; targets.append(t)
@@ -99,6 +125,21 @@ def checked_target_sources(batch,evidence):
 
 def generate_targets(brief,evidence,llm,audits=None):
     payload={'brief':brief_payload(brief),'evidence':evidence_windows(evidence,brief.one_line+' '+brief.problem)}
+    if not strict_target_review():
+        # Lenient: return whatever usable participants the model gives. Regenerate once only when
+        # fewer than 3 remain after dropping bare task/topic labels; fail only if none remain.
+        best=[]
+        for attempt in range(2):
+            batch=llm.call('targets',payload,TargetBatch,max_tokens=2100)
+            targets=checked_target_sources(batch,evidence,strict=False)
+            issues=[f'{t.segment_name}: {target_label_issue(t)}' for t in targets if target_label_issue(t)]
+            kept=[t for t in targets if not target_label_issue(t)]
+            if audits is not None: audits.append(TargetAudit(stage='recommendation',targets=batch.targets,issues=issues))
+            if len(kept)>len(best): best=kept
+            if len(best)>=3: break
+            payload['repair_feedback']=issues+['서로 다른 이용자 후보가 최소 3개 필요합니다.']
+        if not best: raise ValueError('이용자 후보를 만들지 못했습니다. 아이디어를 유지한 채 다시 추천받아 주세요.')
+        return rank_contrasting(best)
     for attempt in range(2):
         batch=llm.call('targets',payload,TargetBatch,max_tokens=2100)
         targets=checked_target_sources(batch,evidence)
@@ -119,6 +160,7 @@ def validate_target_selection(brief,chosen,audits,llm):
         if issue: raise ValueError(f'“{t.segment_name}”: {issue} 어떤 이용자인지 수정하거나 타깃을 다시 추천받아 주세요.')
     if len({t.segment_name.strip() for t in chosen})!=len(chosen):
         raise ValueError('같은 이용자 유형을 중복 선택했습니다. 서로 다른 타깃을 선택하세요.')
+    if not strict_target_review(): return None   # lenient: local label/duplicate checks only
     approved=[target_signature(t) for a in audits if a.review is not None and not a.issues for t in a.targets]
     unreviewed=[t for t in chosen if target_signature(t) not in approved]
     if unreviewed:

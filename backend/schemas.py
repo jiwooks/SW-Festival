@@ -310,6 +310,8 @@ class ConversationThread(Model):
     status: Literal['active','returned_to_user','closed'] = 'active'
     stop_reason: str = ''
     remaining_issues: list[str] = Field(default_factory=list,max_length=8)
+    # How the founder asked. None = saved before this field existed.
+    interaction: Literal['auto','direct','interactive'] | None = None
 
 class LoungeQuestion(Model):
     question: str = Field(min_length=1,max_length=500)

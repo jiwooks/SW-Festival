@@ -7,7 +7,9 @@ param(
     [int]$Port=8000,
     [int]$Context=8192,
     [int]$GpuLayers=99,
-    [int]$Threads=6
+    [int]$Threads=6,
+    # 세라프 등 원격 GPU의 Qwen을 SSH 터널(127.0.0.1:8080)로 사용한다. scripts/seraph_tunnel.ps1을 먼저 실행.
+    [switch]$Remote
 )
 $ErrorActionPreference='Stop'
 $taskRoot=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -31,7 +33,20 @@ try {
     $env:LLM_BASE_URL='http://127.0.0.1:8080/v1'
     $env:LLM_MODEL='persona-qwen'
     $env:CONTEXT_SIZE="$Context"
-    if ($Mode -eq 'qwen') {
+    if ($Mode -eq 'qwen' -and $Remote) {
+        # 원격 서버를 시작·종료하지 않는다. 터널 너머가 Qwen GGUF인지만 확인한다.
+        $taskHeaders=@{}
+        if ($env:LLM_API_KEY) { $taskHeaders['Authorization']='Bearer '+$env:LLM_API_KEY }
+        $taskReady=$false
+        try { $taskReady=(Invoke-RestMethod 'http://127.0.0.1:8080/health' -TimeoutSec 5).status -eq 'ok' } catch {}
+        if (!$taskReady) { throw 'Remote Qwen is not reachable at 127.0.0.1:8080. Run scripts/seraph_tunnel.ps1 in another window first.' }
+        $taskProps=Invoke-RestMethod 'http://127.0.0.1:8080/props' -Headers $taskHeaders -TimeoutSec 10
+        $taskName=[IO.Path]::GetFileName([string]$taskProps.model_path)
+        if ($taskName -notmatch '(?i)qwen.*\.gguf$') { throw "Remote server model '$taskName' is not a Qwen GGUF. No other model is used." }
+        Write-Output "Remote model: $taskName"
+        $taskActual=[int]$taskProps.default_generation_settings.n_ctx
+        if ($taskActual -gt 0) { $env:CONTEXT_SIZE="$( [Math]::Min($Context,$taskActual) )" }
+    } elseif ($Mode -eq 'qwen') {
         if (!$ModelPath -or !$Server) { throw 'Qwen mode requires -ModelPath /path/Qwen*.gguf and -Server /path/llama-server.exe.' }
         $taskModel=(Resolve-Path -LiteralPath $ModelPath).Path
         $taskServer=(Resolve-Path -LiteralPath $Server).Path
