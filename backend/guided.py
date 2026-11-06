@@ -96,7 +96,7 @@ class GuidedConversation(AdaptiveConversation):
         r=s.dialogue_runtime.get('followup'); key=[question,persona_id,interaction]
         if r and not r.get('done') and r['key']!=key: raise ValueError('미완료 메시지를 같은 내용으로 재개하세요.')
         if not r or r.get('done'):
-            thread=ConversationThread(id=f'th{len(s.threads)+1}',question=question); s.threads.append(thread); self.thread_context(thread)
+            thread=ConversationThread(id=f'th{len(s.threads)+1}',question=question,interaction=interaction); s.threads.append(thread); self.thread_context(thread)
             pid=persona_id or self.choose(list(self.agents),question); scope=[pid] if interaction=='direct' else list(self.agents)
             r={'key':key,'count':0,'pending':{'pid':pid,'question':question,'reply':None,'stage':'contribution'},'done':False,
                'thread_id':thread.id,'scope':scope,'interaction':interaction,'contributed':[],'crossed':[],'handled_requests':[]}

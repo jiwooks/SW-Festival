@@ -741,3 +741,14 @@ def test_cached_finish_applies_consensus_guard_and_persists_without_model_call(t
     successful(api.post(base+'/finish',json={}))
     assert len(llm.records) == before
     assert len(api.get(base).json()['dialogue_runtime']['report_claim_audits']) == 1
+
+
+def test_thread_records_how_the_founder_asked(tmp_path):
+    api, _, base, raw = selected(tmp_path)
+    pid = raw['cards'][0]['id']
+    group = successful(api.post(base + '/ask', json={'question': '모두에게 묻습니다.', 'interaction': 'auto'}))
+    assert group['threads'][-1]['interaction'] == 'auto'
+    direct = successful(api.post(base + '/ask', json={'question': '한 명에게만 묻습니다.', 'persona_id': pid, 'interaction': 'direct'}))
+    assert direct['threads'][-1]['interaction'] == 'direct'
+    speakers = {t['persona_id'] for t in direct['transcript'] if t['thread_id'] == direct['threads'][-1]['id']}
+    assert speakers == {pid}
