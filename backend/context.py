@@ -6,6 +6,18 @@ from .quantities import quantity_texts, unsupported_quantities
 def fingerprint(card):
     return hashlib.sha256(card.immutable_core.model_dump_json().encode()).hexdigest()
 
+def drop_spoken_sentences(text,earlier,threshold=.8,min_chars=12):
+    """Remove sentences of `text` that (nearly) repeat a sentence already said in `earlier` texts.
+    Short sentences are kept: they are too generic to judge as copies."""
+    split=lambda x:[s.strip() for s in re.split(r'(?<=[.!?。])\s+',x) if s.strip()]
+    norm=lambda x:re.sub(r'\W','',x.lower())
+    seen=[norm(s) for t in earlier for s in split(t) if len(norm(s))>=min_chars]
+    sentences=split(text)
+    kept=[s for s in sentences if len(norm(s))<min_chars
+          or not any(SequenceMatcher(None,norm(s),old).ratio()>=threshold for old in seen)]
+    if len(kept)==len(sentences): return text          # nothing repeated: keep original formatting
+    return ' '.join(kept) if any(len(norm(s))>=min_chars for s in kept) else ''
+
 class ContextManager:
     """Independent owned/private buffer and separately attributed public observations."""
     def __init__(self,recent=6,summary_chars=900):
@@ -176,8 +188,23 @@ class PersonaAgent:
             a.stance='conditional'
             if interaction: a.dialogue_act='answer'; a.followup_question=''; a.followup_kind='none'; a.addressed_to=None
             if issue!='unsupported_quantity': a.unresolved_issues=(a.unresolved_issues+['실제 경험·도입 조건 확인'])[-8:]
-        if not self.card.immutable_core.evidence_anchors and not re.search(r'(가설|라면|다면|조건|가능성|모릅니다|알 수 없|미확인)',a.content):
-            a.content='가상 조건에 따른 가설로는, '+a.content
+        # The UI already labels every persona answer as an AI-simulated hypothesis, so a fixed
+        # '가상 조건에 따른 가설로는,' prefix is no longer prepended (it made every speaker sound identical).
+        # A withheld answer deliberately republishes the speaker's own earlier view; leave it intact.
+        if interaction and self.llm.mode=='qwen' and not any(f.endswith('_withheld') for f in a.quality_flags):
+            # Small models often re-paste their own or a peer's earlier sentences and append a little.
+            # Whole-answer similarity misses that, so drop already-spoken sentences one by one.
+            fresh=drop_spoken_sentences(a.content,[t.get('content','') for t in
+                self.context.recent+(public.recent if public else []) if t.get('phase')=='group'])
+            if fresh!=a.content:
+                if a.generated_content is None: a.generated_content=a.content
+                if fresh:
+                    a.content=fresh; a.quality_flags=(a.quality_flags+['repeated_sentences_removed'])[-4:]
+                else:
+                    a.content='앞에서 말씀드린 제 조건 외에 더할 내용은 없습니다.'
+                    a.followup_question=''; a.addressed_to=None
+                    if hasattr(a,'followup_kind'): a.followup_kind='none'
+                    a.quality_flags=(a.quality_flags+['response_repeat_unresolved'])[-4:]
         if interaction and a.addressed_to not in (participants or []): a.addressed_to=None
         if interaction and round_name=='Closing check':
             a.dialogue_act='close'; a.addressed_to=None; a.followup_question=''

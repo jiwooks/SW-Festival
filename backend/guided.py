@@ -114,7 +114,9 @@ class GuidedConversation(AdaptiveConversation):
             t.thread_id=thread.id; thread.utterance_ids.append(t.id); r['count']+=1
             bucket='contributed' if p['stage']=='contribution' else 'crossed' if p['stage']=='cross_response' else None
             if bucket and p['pid'] not in r[bucket]: r[bucket].append(p['pid'])
-            r['pending']=self.next_action(r,thread); save(s)
+            # A turn with nothing new means the exchange is exhausted; stop instead of asking for more copies.
+            r['pending']=None if 'response_repeat_unresolved' in t.quality_flags and p['stage']!='contribution' else self.next_action(r,thread)
+            save(s)
         issues=[issue for t in s.transcript if t.id in thread.utterance_ids for issue in t.unresolved_issues]
         if r['pending']: issues.append(r['pending']['question'][-140:])
         thread.remaining_issues=list(dict.fromkeys(issues))[-8:]; thread.status='returned_to_user'
