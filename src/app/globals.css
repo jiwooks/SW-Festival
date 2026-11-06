@@ -52,6 +52,16 @@
   --color-persona-3: var(--persona-3);
   --color-persona-4: var(--persona-4);
   --color-persona-5: var(--persona-5);
+  --color-persona-1-tint: var(--persona-1-tint);
+  --color-persona-2-tint: var(--persona-2-tint);
+  --color-persona-3-tint: var(--persona-3-tint);
+  --color-persona-4-tint: var(--persona-4-tint);
+  --color-persona-5-tint: var(--persona-5-tint);
+  --color-persona-1-line: var(--persona-1-line);
+  --color-persona-2-line: var(--persona-2-line);
+  --color-persona-3-line: var(--persona-3-line);
+  --color-persona-4-line: var(--persona-4-line);
+  --color-persona-5-line: var(--persona-5-line);
 
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;

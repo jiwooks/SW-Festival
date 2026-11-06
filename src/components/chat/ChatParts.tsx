@@ -24,6 +24,15 @@ const DOT_COLOR: Record<PersonaColor, string> = {
   5: "bg-persona-5",
 };
 
+/** 말풍선: 그 사람 색의 옅은 틴트 + 같은 계열 테두리. 이름·얼굴과 함께 쓰여 색만으로 구분하지 않는다. */
+const BUBBLE: Record<PersonaColor, string> = {
+  1: "bg-persona-1-tint border-persona-1-line",
+  2: "bg-persona-2-tint border-persona-2-line",
+  3: "bg-persona-3-tint border-persona-3-line",
+  4: "bg-persona-4-tint border-persona-4-line",
+  5: "bg-persona-5-tint border-persona-5-line",
+};
+
 /** ROUND 구분선: 라운드 구조(첫 반응 → 상호 토론 → 자유 질문)를 대화 중에 보여준다. */
 export function RoundDivider({ round, label }: { round: number; label: string }) {
   return (
@@ -53,8 +62,8 @@ export function PersonaMessage({
     <div className="flex gap-[11px]">
       <PersonaAvatar name={name} color={color} />
       <div className="flex max-w-[620px] flex-col gap-[5px]">
-        <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}{segment && <span className="ml-2 font-normal text-muted">{segment}</span>}</p>
-        <div className="whitespace-pre-wrap rounded-[4px_14px_14px_14px] border border-card bg-base px-4 py-[13px] text-[15px] leading-[1.72] text-ink-2">
+        <p className={`text-sm font-bold ${NAME_COLOR[color]}`}>{name}{segment && <span className="ml-2 text-xs font-normal text-muted">{segment}</span>}</p>
+        <div className={`whitespace-pre-wrap rounded-[4px_14px_14px_14px] border px-4 py-[13px] text-[15px] leading-[1.72] text-ink-2 ${BUBBLE[color]}`}>
           {typeof children === "string" ? normalize(children) : children}
         </div>
       </div>
@@ -68,8 +77,8 @@ export function TypingMessage({ name, color }: { name: string; color: PersonaCol
     <div className="flex gap-[11px]" role="status">
       <PersonaAvatar name={name} color={color} />
       <div className="flex flex-col gap-[5px]">
-        <p className={`text-xs font-semibold ${NAME_COLOR[color]}`}>{name}</p>
-        <div className="flex items-center gap-1.5 rounded-[4px_14px_14px_14px] border border-card bg-base px-[18px] py-4">
+        <p className={`text-sm font-bold ${NAME_COLOR[color]}`}>{name}</p>
+        <div className={`flex items-center gap-1.5 rounded-[4px_14px_14px_14px] border px-[18px] py-4 ${BUBBLE[color]}`}>
           {[0, 1, 2].map((i) => (
             <span
               key={i}
