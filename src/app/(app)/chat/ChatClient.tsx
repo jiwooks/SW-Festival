@@ -1,377 +1,119 @@
 "use client";
-
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChatComposer,
-  ChatRoomHeader,
-  NextSpeaker,
-  PersonaMessage,
-  QuestionChips,
-  RoundDivider,
-  TypingMessage,
-  UserMessage,
-} from "@/components/chat/ChatParts";
-import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { Logo } from "@/components/AppHeader";
-import { CenteredState, PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/states/CenteredState";
-import { ErrorState, remainingLabel } from "@/components/states/ErrorState";
-import { streamChat } from "@/lib/chatStream";
-import { readIdeaDraft } from "@/lib/ideaStore";
-import { MOCK_PRESELECTED, MOCK_QUESTION_POOL } from "@/lib/mock";
-import { useTargets } from "@/lib/targetStore";
-import { roundLabel, type ChatEvent, type ChatIdea, type ChatRequest, type Message, type Persona } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
+import { ChatComposer, ChatRoomHeader, PersonaMessage, QuestionChips, TypingMessage, UserMessage } from "@/components/chat/ChatParts";
+import { currentSessionId, getSession, rememberSession, runSessionAction, type SoulSession } from "@/lib/soul-api";
+import { useSoulSession } from "@/lib/use-soul-session";
+import { cardColor } from "@/lib/persona-presentation";
+import { IdeaSummary } from "@/components/IdeaSummary";
+import { displayChatText } from "@/lib/chat-presentation";
 import { DmPanel } from "./DmPanel";
+type Ask = { question: string; persona_id: string | null; interaction: "auto" | "direct" };
+const SECONDARY = "inline-flex h-11 items-center justify-center rounded-btn border border-btn-border bg-base px-4 text-sm text-ink-2 disabled:opacity-50";
+const pendingKey = (id: string) => `soul.qwen.pending-message.v1:${id}`;
 
-type Msg = Pick<Message, "id" | "speakerId" | "text" | "round" | "concern">;
-type Speaking = { id: string; nextId?: string } | null;
-
-const USER = "user";
-
-/**
- * 시안: design/screens/04-chat.html (단체) + 04-1-chat-dm.html (1:1 패널) + 07-1 (답하는 중) + 08 (끊김)
- *
- * 단체 대화가 메인이고, 페르소나는 /api/chat 이 정한 순서대로 한 명씩 토큰 단위로 말한다.
- * 1:1 패널이 열려 있는 동안 단체 대화는 멈추고, 멈췄다는 것을 화면에 표시한다.
- * TODO: 02·03 에서 고른 세 명이 넘어오면 MOCK_PRESELECTED 대신 그걸 쓴다. (카드 내용은 targetStore 를 따른다)
- */
-export function ChatClient({ initialDraft = "" }: { initialDraft?: string }) {
-  // 02 에서 고친 카드가 있으면 그걸 쓴다. 내용이 같으면 같은 배열을 유지해야 대화가 다시 시작되지 않는다
-  const targets = useTargets();
-  const pickedKey = JSON.stringify(MOCK_PRESELECTED.map((id) => targets.find((p) => p.id === id)));
-  const personas = useMemo(
-    () => (JSON.parse(pickedKey) as (Persona | undefined)[]).filter((p): p is Persona => !!p),
-    [pickedKey],
-  );
-  const byId = useCallback((id?: string) => personas.find((p) => p.id === id), [personas]);
-
-  // 01 에서 적은 아이디어. 브라우저에만 있어서 마운트 뒤에 읽는다 (undefined = 아직 안 읽음, null = 없음)
-  // 아이디어 없이 대화를 시작하면 페르소나가 들은 것도 없이 말하게 되므로 06 빈 상태로 01 에 보낸다
-  const [idea, setIdea] = useState<ChatIdea | null | undefined>(undefined);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 저장소에서 한 번 읽기
-    setIdea(readIdeaDraft() ?? null);
-  }, []);
-
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [round, setRound] = useState(1);
-  const [speaking, setSpeaking] = useState<Speaking>(null);
-  /** 말할 차례가 됐지만 첫 글자가 아직 안 온 동안만 "답하는 중" 점 세 개를 띄운다 */
-  const [waiting, setWaiting] = useState(false);
-  const [streaming, setStreaming] = useState(false);
-  const [failed, setFailed] = useState<{ personaId?: string } | null>(null);
-  const [stopped, setStopped] = useState(false);
-  const [dmId, setDmId] = useState<string | null>(null);
-  // 05 리포트의 "이어서 물어볼 지점"을 누르고 오면 그 질문이 입력창에 채워져 있다
+export function ChatClient({ initialDraft = "", initialPersona = "" }: { initialDraft?: string; initialPersona?: string }) {
+  const router = useRouter();
+  const { session, loading, error: readError } = useSoulSession();
   const [draft, setDraft] = useState(initialDraft);
+  const [targetId, setTargetId] = useState(initialPersona);
+  const [dmId, setDmId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [questionAt, setQuestionAt] = useState(0);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const lastRequest = useRef<ChatRequest | null>(null);
-  // 요청을 만들 때 최신 대화가 필요하다. 렌더 중에 ref 를 쓰지 않도록 effect 에서 맞춘다
-  const messagesRef = useRef<Msg[]>([]);
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  const [retry, setRetry] = useState<Ask | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const run = useCallback(
-    (req: Omit<ChatRequest, "history" | "personaIds" | "roomType">) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const request: ChatRequest = {
-        ...req,
-        roomType: "group",
-        personaIds: personas.map((p) => p.id),
-        personas,
-        idea: idea ?? undefined,
-        history: messagesRef.current
-          .filter((m) => m.text)
-          .map(({ speakerId, text, round: r, concern }) => ({ speakerId, text, round: r, concern })),
-      };
-      lastRequest.current = request;
-      setStreaming(true);
-      setStopped(false);
-      setFailed(null);
-      const turnId = Date.now().toString(36);
-      let currentRound = req.round;
-
-      const onEvent = (e: ChatEvent) => {
-        if (controller.signal.aborted) return;
-        switch (e.type) {
-          case "round":
-            currentRound = e.round;
-            setRound(e.round);
-            break;
-          case "start":
-            setSpeaking({ id: e.personaId, nextId: e.nextId });
-            setWaiting(true);
-            break;
-          case "token":
-            setWaiting(false);
-            setMessages((prev) => {
-              const id = `${turnId}-${e.personaId}`;
-              const at = prev.findIndex((m) => m.id === id);
-              if (at < 0) return [...prev, { id, speakerId: e.personaId, text: e.text, round: currentRound }];
-              const next = [...prev];
-              next[at] = { ...next[at], text: next[at].text + e.text };
-              return next;
-            });
-            break;
-          case "end":
-            setMessages((prev) =>
-              prev.map((m) => (m.id === `${turnId}-${e.personaId}` ? { ...m, concern: e.concern } : m)),
-            );
-            break;
-          case "error":
-            // 끊긴 사람의 반쯤 쓴 말은 지운다 — 남아 있는 것은 끝까지 말한 발언만
-            setMessages((prev) => prev.filter((m) => m.id !== `${turnId}-${e.personaId}`));
-            setFailed({ personaId: e.personaId });
-            setSpeaking(null);
-            setWaiting(false);
-            setStreaming(false);
-            break;
-          case "done":
-            setSpeaking(null);
-            setWaiting(false);
-            setStreaming(false);
-            break;
-        }
-      };
-
-      const url =
-        typeof window !== "undefined" && window.location.search.includes("simulateError=1")
-          ? "/api/chat?simulateError=1"
-          : "/api/chat";
-      void streamChat(request, onEvent, controller.signal, url);
-    },
-    [personas, idea],
-  );
-
-  // 들어오면 1라운드(처음 들은 생각)를 시작한다. 떠나면 끊는다.
-  // (개발 모드 StrictMode 는 effect 를 두 번 돌린다 — 첫 요청은 정리에서 끊기고 두 번째가 산다)
-  useEffect(() => {
-    if (!idea) return;
-    // 외부 스트림(/api/chat)을 여는 자리다. run 이 "연결 중" 표시를 위해 상태를 바로 바꾸는데,
-    // 그건 구독 시작을 알리는 한 번뿐이라 여기서만 규칙을 끈다 (01 IdeaFormClient 와 같은 예외)
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 스트림 구독 시작
-    run({ kind: "round", round: 1 });
-    return () => abortRef.current?.abort();
-  }, [run, idea]);
-
-  // 맨 아래를 보고 있을 때만 따라 내려간다 — 위를 읽는 중이면 끌어내리지 않는다
   const stick = useRef(true);
+  const initialized = useRef<string | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [messages, speaking]);
+  }, [session?.transcript.length, session?.pending_speaker]);
+  useEffect(() => {
+    if (!session || initialized.current === session.id) return;
+    initialized.current = session.id;
+    const pending = session.dialogue_runtime.followup;
+    if (pending && !pending.done) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore a persisted server mutation for explicit retry.
+      setRetry({ question: pending.key[0], persona_id: pending.key[1], interaction: pending.key[2] === "direct" ? "direct" : "auto" });
+    } else if (session.error) {
+      try { const raw = localStorage.getItem(pendingKey(session.id)); if (raw) setRetry(JSON.parse(raw)); } catch {}
+    }
+  }, [session]);
+  const unfinished = !!session?.dialogue_runtime.followup && !session.dialogue_runtime.followup.done;
+  const live = unfinished && !session?.error;
+  const sessionId = session?.id;
+  useEffect(() => {
+    if (!sessionId || !live || busy) return;
+    let reading = false;
+    let active = true;
+    const timer = setInterval(async () => { if (reading) return; reading = true; try { const latest = await getSession(sessionId); if (active && (currentSessionId() === sessionId || currentSessionId() === null)) rememberSession(latest); } catch {} finally { reading = false; } }, 1500);
+    return () => { active = false; clearInterval(timer); };
+  }, [sessionId, live, busy]);
+  const personas = (session?.cards ?? []).map(card => ({ id: card.id, name: card.presentation.display_name, segment: card.immutable_core.identity_context.segment, color: cardColor(session!, card) }));
+  const byId = (id?: string | null) => personas.find(p => p.id === id);
+  const publicTurns = (session?.transcript ?? []).filter(t => t.phase === "group");
+  const utteranceOwners = Object.fromEntries(publicTurns.map(turn => [turn.id, byId(turn.persona_id)?.name ?? ""]));
+  const inProgress = busy || live;
+  const pendingSpeaker = byId(session?.pending_speaker);
+  const dmPersona = byId(dmId);
+  const reported = !!session?.report;
+  const reportPending = !!session?.dialogue_runtime.report_snapshot && !session.dialogue_runtime.report_snapshot.done;
+  const recoverableMessage = unfinished || ((session?.status === "PRE" || session?.status === "FAILED") && !publicTurns.length);
 
-  /** 지금 말하던 사람까지만 듣고 멈춘다. 반쯤 쓴 말은 그대로 둔다. */
-  const stop = () => {
-    abortRef.current?.abort();
-    setSpeaking(null);
-    setWaiting(false);
-    setStreaming(false);
-    setStopped(true);
-  };
-
-  const send = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || streaming) return;
-    // @이름 으로 시작하면 그 사람에게만 묻는다
-    const mention = trimmed.match(/^@(\S+)/)?.[1];
-    const target = mention ? personas.find((p) => p.name === mention || p.name.endsWith(mention)) : undefined;
-    setMessages((prev) => [
-      ...prev,
-      { id: `u-${Date.now().toString(36)}`, speakerId: USER, text: trimmed, round },
-    ]);
-    messagesRef.current = [
-      ...messagesRef.current,
-      { id: "pending", speakerId: USER, text: trimmed, round },
-    ];
-    setDraft("");
-    run({ kind: "message", round, message: trimmed, targetId: target?.id });
-  };
-
-  const closeDm = useCallback(() => setDmId(null), []);
-
-  const openDm = (id: string) => {
-    if (streaming) stop(); // 1:1 이 열려 있는 동안 단체 대화는 멈춘다
-    setDmId(id);
-  };
-
-  // 가장 많이 걸려한 사람 — 대화 중 태깅된 concern 수로 센다. 아무도 없으면 버튼을 띄우지 않는다.
-  const mostConcerned = useMemo(() => {
-    const counts = personas.map((p) => ({
-      p,
-      n: messages.filter((m) => m.speakerId === p.id && m.concern).length,
-    }));
-    const top = counts.sort((a, b) => b.n - a.n)[0];
-    return top && top.n > 0 ? top.p : undefined;
-  }, [messages, personas]);
-
-  // 처음 걸려한 말을 인용한다 — 뒤로 갈수록 앞 말을 되풀이하는 경우가 많아 그 사람을 가장 잘 보여주는 건 첫 반대다
-  const concernQuote = (id: string) => messages.find((m) => m.speakerId === id && m.concern)?.text;
-
-  const spoken = messages.filter((m) => m.speakerId !== USER && m.text).length;
-  const questions = [0, 1].map((i) => MOCK_QUESTION_POOL[(questionAt + i) % MOCK_QUESTION_POOL.length]);
-  const speaker = byId(speaking?.id);
-  const next = byId(speaking?.nextId);
-  const dmPersona = byId(dmId ?? undefined);
-
-  if (idea === null) {
-    return (
-      <CenteredState
-        icon={<Logo size={72} muted />}
-        title="아직 들려줄 아이디어가 없어요"
-        description="세 명이 들을 아이디어를 먼저 적어주세요. 한 줄이면 시작할 수 있어요."
-        actions={
-          <Link href="/new" className={PRIMARY_BUTTON}>
-            아이디어 적기
-          </Link>
-        }
-      />
-    );
+  async function send(text: string, directedPersona?: string | null, resume = false) {
+    if (!session || inProgress || !text.trim() || text.trim().length > 500) return;
+    const mention = text.trim().match(/^@(\S+)/)?.[1];
+    const mentioned = mention ? personas.find(p => p.name === mention) : null;
+    const addressed = directedPersona || targetId || mentioned?.id || null;
+    const request: Ask = resume && retry ? retry : { question: text.trim(), persona_id: addressed, interaction: addressed ? "direct" : "auto" };
+    setBusy(true); setOperation("ask"); setError(null); setRetry(request);
+    try { localStorage.setItem(pendingKey(session.id), JSON.stringify(request)); } catch {}
+    try {
+      await runSessionAction(session.id, "ask", request);
+      setRetry(null); setDraft("");
+      try { localStorage.removeItem(pendingKey(session.id)); } catch {}
+    } catch (err) { setError(err instanceof Error ? err.message : "대화를 이어가지 못했습니다."); }
+    finally { setBusy(false); setOperation(""); }
   }
-
-  if (failed) {
-    const who = byId(failed.personaId);
-    return (
-      <ErrorState
-        title="대화를 이어가지 못했어요"
-        description={`${who ? `${who.name}님이 답하는 중에` : "답을 받는 중에"} 연결이 끊겼어요. 지금까지 나눈 이야기는 그대로 남아 있어요.`}
-        remaining={spoken > 0 ? remainingLabel(round, spoken) : undefined}
-        actions={
-          <>
-            <button
-              type="button"
-              className={PRIMARY_BUTTON}
-              onClick={() => {
-                const req = lastRequest.current;
-                if (req) run({ kind: req.kind, round: req.round, message: req.message, targetId: req.targetId });
-              }}
-            >
-              다시 시도
-            </button>
-            {spoken > 0 && (
-              <Link href="/report" className={SECONDARY_BUTTON}>
-                여기까지로 리포트 만들기
-              </Link>
-            )}
-          </>
-        }
-      />
-    );
+  async function suggestions() {
+    if (!session || inProgress) return;
+    if (session.suggestions.length) { setQuestionAt(value => value + 2); return; }
+    setBusy(true); setOperation("suggestions"); setError(null);
+    try { await runSessionAction(session.id, "suggestions"); }
+    catch (err) { setError(err instanceof Error ? err.message : "질문 추천을 받지 못했습니다."); }
+    finally { setBusy(false); setOperation(""); }
   }
+  async function finish() {
+    if (!session || inProgress || unfinished || !publicTurns.length) return;
+    setBusy(true); setOperation("finish"); setError(null);
+    try { await runSessionAction(session.id, "finish"); router.push("/report"); }
+    catch (err) { setError(err instanceof Error ? err.message : "리포트를 만들지 못했습니다."); }
+    finally { setBusy(false); setOperation(""); }
+  }
+  const questions = session?.suggestions.length ? [0, 1].map(offset => session.suggestions[(questionAt + offset) % session.suggestions.length].question) : [];
+  if (loading) return <main className="flex grow items-center justify-center p-20" role="status">저장한 대화를 불러오고 있어요.</main>;
+  if (!session?.cards.length) return <main className="flex grow flex-col items-center justify-center gap-4 p-20"><h1 className="text-2xl font-semibold">먼저 페르소나를 만들어 주세요</h1>{readError && <p role="alert" className="text-conflict-fg">{readError}</p>}<Link href="/targets" className={SECONDARY}>이용자 고르기</Link></main>;
 
-  return (
-    <>
-      <div
-        ref={scrollRef}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-        }}
-        className="flex grow flex-col items-center overflow-y-auto py-6"
-        inert={Boolean(dmPersona)}
-      >
-        <div className="flex w-[880px] flex-col gap-4" aria-live="polite" aria-busy={streaming}>
-          <ChatRoomHeader personas={personas} round={round} onOpenDm={openDm} />
+  function eventsBefore(index: number, current: SoulSession) { return current.chat_events.filter(event => event.before === index && (current.lounge_mode !== "guided" || event.role === "founder")); }
+  return <>
+    <AppHeader current="04" right={<div className="flex gap-2">{reported && <Link href="/report" className={SECONDARY}>{session.report_stale ? "이전 리포트 보기" : "리포트 보기"}</Link>}<button type="button" disabled={inProgress || unfinished || !publicTurns.length} onClick={() => void finish()} className="h-11 rounded-btn bg-brand px-[18px] text-sm font-semibold text-white disabled:opacity-50">{operation === "finish" ? "리포트 생성 중…" : session.report_stale ? "리포트 업데이트" : "리포트 만들기"}</button></div>}/>
+    <div ref={scrollRef} onScroll={event => { const el = event.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 90; }} className="flex min-h-0 grow flex-col items-center overflow-y-auto px-5 py-6">
+      <div className="flex w-full max-w-[880px] flex-col gap-4" aria-live="polite" aria-busy={inProgress}><IdeaSummary input={session.input} compact /><ChatRoomHeader personas={personas} round={session.threads.length} interaction={operation === "ask" && retry ? retry.interaction : session.dialogue_runtime.followup?.key[2] ?? (targetId ? "direct" : "auto")} onOpenDm={id => { if (!inProgress && !unfinished) setDmId(id); }}/>
+        <p className="text-xs leading-relaxed text-muted">{session.mode === "mock" ? "모의 테스트 모드입니다. 실제 Qwen 성능 평가 결과가 아닙니다." : "가상 페르소나와의 대화입니다."}</p>
+        {!publicTurns.length && !inProgress && <div className="rounded-card border border-card bg-base p-6"><h2 className="text-lg font-semibold">궁금한 점을 물어보세요</h2><p className="mt-2 text-sm leading-relaxed text-ink-3">선택한 {personas.length}명이 먼저 자기 조건에서 답하고, 서로의 말에 적용되는 조건이나 차이를 비교합니다. 답변이 끝난 뒤에도 아래 입력칸에서 계속 질문할 수 있어요.</p></div>}
+        {session.transcript.map((turn, index) => { const p = byId(turn.persona_id); const parent = publicTurns.find(t => t.id === turn.reply_to); const parentPersona = byId(parent?.persona_id); return <Fragment key={turn.id}>{eventsBefore(index, session).map((event, i) => event.role === "founder" ? <UserMessage key={`${index}-${i}`}>{event.content}</UserMessage> : <p key={`${index}-${i}`} className="self-center rounded-full bg-bubble px-4 py-2 text-center text-xs leading-relaxed text-ink-3">{event.content}</p>)}{turn.phase === "group" && p && <div id={`utterance-${turn.id}`} data-utterance-id={turn.id}>{parent && <p className="mb-1 ml-[51px] text-xs text-muted">↳ {parentPersona?.name}님에게 답함</p>}<PersonaMessage name={p.name} segment={p.segment} color={p.color}>{displayChatText(turn.content, p.id, personas, utteranceOwners)}</PersonaMessage></div>}</Fragment>; })}
+        {eventsBefore(session.transcript.length, session).map((event, i) => event.role === "founder" ? <UserMessage key={`tail-${i}`}>{event.content}</UserMessage> : <p key={`tail-${i}`} className="self-center rounded-full bg-bubble px-4 py-2 text-center text-xs leading-relaxed text-ink-3">{event.content}</p>)}
+        {inProgress && <div role="status" className="rounded-card bg-bubble px-4 py-3 text-sm text-ink-3">{operation === "suggestions" ? "이 아이디어와 페르소나에 맞는 질문을 추천하고 있어요." : operation === "finish" ? "대화를 리포트로 정리하고 있어요." : session.status === "PRE" ? "각자 첫 답변을 준비하고 있어요." : "각자의 답과 서로의 조건을 비교하며 대화하고 있어요."}</div>}
+        {inProgress && pendingSpeaker && session.status !== "PRE" && operation !== "finish" && <TypingMessage name={pendingSpeaker.name} color={pendingSpeaker.color}/>}
+        {(error || session.error || readError) && <div role="alert" className="rounded-card bg-conflict-bg p-4 text-sm leading-relaxed text-conflict-fg"><p>진행하지 못했습니다: {error || session.error || readError}</p><p className="mt-2">완료된 발언은 저장되어 있어요. 같은 메시지를 재개하면 중단된 지점부터 이어갑니다.</p>{retry && recoverableMessage && <button type="button" onClick={() => void send(retry.question, retry.persona_id, true)} disabled={inProgress} className={`${SECONDARY} mt-3`}>중단된 메시지 재개</button>}{session.dialogue_runtime.report_snapshot && !session.dialogue_runtime.report_snapshot.done && <button type="button" onClick={() => void finish()} disabled={inProgress} className={`${SECONDARY} mt-3`}>리포트 생성 재개</button>}</div>}
 
-          {/* 세 명이 무엇을 듣고 말하는지 — 01 에서 적은 아이디어를 내가 처음 꺼낸 말로 보여준다 */}
-          {idea && <UserMessage>{idea.oneLiner}</UserMessage>}
-
-          {messages.map((m, i) => {
-            const newRound = i === 0 || messages[i - 1].round !== m.round;
-            const p = byId(m.speakerId);
-            return (
-              <Fragment key={m.id}>
-                {newRound && <RoundDivider round={m.round} label={roundLabel(m.round)} />}
-                {m.speakerId === USER ? (
-                  <UserMessage>{m.text}</UserMessage>
-                ) : p ? (
-                  <PersonaMessage name={p.name} color={p.color} face={p}>
-                    {m.text}
-                  </PersonaMessage>
-                ) : null}
-              </Fragment>
-            );
-          })}
-
-          {messages.length === 0 && <RoundDivider round={round} label={roundLabel(round)} />}
-          {speaker && waiting && <TypingMessage name={speaker.name} color={speaker.color} face={speaker} />}
-
-          {streaming && next && <NextSpeaker name={next.name} color={next.color} face={next} onStop={stop} />}
-          {streaming && !next && speaker && (
-            <div className="flex">
-              <button
-                type="button"
-                onClick={stop}
-                className="h-11 rounded-full border border-btn-border bg-base px-3.5 text-[13px] text-ink-3"
-              >
-                여기서 멈추기
-              </button>
-            </div>
-          )}
-          {stopped && (
-            <p className="text-[13px] text-ink-3" role="status">
-              여기서 멈췄어요. 이어서 들으려면 질문을 보내거나 ‘이어서 더 듣기’를 누르세요.
-            </p>
-          )}
-
-          {!streaming && spoken > 0 && (
-            <div className="flex items-center gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => run({ kind: "round", round: round + 1 })}
-                className="h-11 rounded-btn border border-btn-border bg-base px-[18px] text-sm text-ink-2"
-              >
-                이어서 더 듣기
-              </button>
-              {mostConcerned && (
-                <button
-                  type="button"
-                  onClick={() => openDm(mostConcerned.id)}
-                  className="flex h-11 items-center gap-[9px] rounded-btn bg-conflict-bg px-4 text-sm text-conflict-fg"
-                >
-                  <PersonaAvatar name={mostConcerned.name} color={mostConcerned.color} size="sm" face={mostConcerned} />
-                  {mostConcerned.name}님이 가장 많이 걸려했어요 · 따로 물어보기
-                </button>
-              )}
-            </div>
-          )}
-        </div>
       </div>
-
-      <div className="flex h-[134px] shrink-0 justify-center pb-[22px]" inert={Boolean(dmPersona)}>
-        <div className="flex w-[880px] flex-col gap-3">
-          <QuestionChips
-            questions={questions}
-            onPick={(q) => setDraft(q)}
-            onMore={() => setQuestionAt((i) => i + 2)}
-          />
-          <ChatComposer
-            value={draft}
-            onChange={setDraft}
-            onSend={() => send(draft)}
-            sending={streaming}
-            placeholder={
-              streaming
-                ? "세 명이 말하는 동안에도 질문을 적어둘 수 있어요"
-                : "궁금한 걸 물어보세요. @이름을 쓰면 그 사람에게만 물어봐요."
-            }
-          />
-        </div>
-      </div>
-
-      {dmPersona && (
-        <DmPanel
-          persona={dmPersona}
-          groupQuote={concernQuote(dmPersona.id)}
-          onClose={closeDm}
-        />
-      )}
-    </>
-  );
+    </div>
+    <div className="flex shrink-0 justify-center border-t border-line bg-alt px-5 pt-3 pb-5"><div className="flex w-full max-w-[880px] flex-col gap-2"><div className="flex flex-wrap items-center gap-3">{questions.length ? <QuestionChips questions={questions} onPick={question => { setDraft(question); setTargetId(""); }} onMore={() => setQuestionAt(value => value + 2)}/> : <button type="button" disabled={inProgress} onClick={() => void suggestions()} className={SECONDARY}>질문 추천받기</button>}<label className="ml-auto flex items-center gap-2 text-xs text-muted">질문할 대상<select value={targetId} disabled={inProgress || unfinished || reportPending} onChange={event => setTargetId(event.target.value)} className="h-9 rounded-[9px] border border-input-border bg-base px-2 text-ink-2"><option value="">모두 · 상호 대화</option>{personas.map(p => <option key={p.id} value={p.id}>{p.name} · 지정 답변</option>)}</select></label></div><ChatComposer value={draft} onChange={setDraft} onSend={() => void send(draft)} sending={inProgress || unfinished || reportPending} placeholder="궁금한 점을 물어보세요. 같은 입력칸에서 계속 대화할 수 있어요."/><span className="self-end text-xs text-muted">{draft.length} / 500자</span></div></div>
+    {dmPersona && <DmPanel persona={dmPersona} session={session} sending={inProgress} onSend={question => void send(question, dmPersona.id)} onClose={() => setDmId(null)}/>}
+  </>;
 }

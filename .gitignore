@@ -44,12 +44,29 @@ next-env.d.ts
 .env*.local
 .env
 
+!.env.example
+/data/
+/runtime/
+/work/
+/models/
+/eval/runs/
+*.sqlite3*
+*.log
+*.egg-info/
+/verification-private/
+/examples/*
+/AGENTS.md
+!/examples/idea.json
+!/examples/calibration_synthetic.json
+!/examples/human_annotation_template.json
+
 # Python — 스크립트를 이 레포에 두게 될 경우
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .pytest_cache/
+pytest-cache-files-*/
 .ruff_cache/
 
 # 모델 가중치·체크포인트 — git 에 올리지 않는다

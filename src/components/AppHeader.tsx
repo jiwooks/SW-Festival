@@ -14,8 +14,7 @@ export type StepNo = (typeof STEPS)[number]["no"];
  * 가운데 원 하나에 둘러앉은 점 다섯 개. 한 자리에 모인 사람들을 뜻한다.
  * 위쪽 한 점만 초록 — 의견이 모이는 순간. 초록 점은 항상 정북.
  *
- * TODO: 이름을 Soul 로 바꾸면서 마크의 원래 설명(과녁+원탁 말놀이)이 더는
- *       맞지 않는다. 마크를 유지할지 다시 그릴지 정해야 한다.
+ * SOUL 서비스의 기존 브랜드 마크를 유지한다.
  */
 export function Logo({ size = 26, muted = false }: { size?: number; muted?: boolean }) {
   // muted: 빈 상태(06)처럼 "아직 아무것도 없음"을 보여줄 때 회색 한 톤으로 그린다

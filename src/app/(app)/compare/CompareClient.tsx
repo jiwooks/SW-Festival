@@ -1,224 +1,40 @@
 "use client";
-
 import Link from "next/link";
 import { Chip } from "@/components/Chip";
 import { PersonaAvatar } from "@/components/PersonaAvatar";
-import { josa } from "@/lib/josa";
-import { MOCK_PRESELECTED } from "@/lib/mock";
-import { useTargets } from "@/lib/targetStore";
-import type { Persona } from "@/lib/types";
-
-/** "박민수" → "민수님". 세 글자 이름만 성을 뗀다. 아니면 그대로 부른다. */
-function honorific(name: string) {
-  return name.length === 3 ? `${name.slice(1)}님` : `${name}님`;
-}
-
-/** 셋이 공유하는 키워드가 하나도 없으면 그 항목은 갈린다고 본다. */
-function splits(picked: Persona[], pick: (p: Persona) => string[]) {
-  const [first, ...rest] = picked.map(pick);
-  return !first.some((kw) => rest.every((other) => other.includes(kw)));
-}
-
-/**
- * 값이 실제로 갈릴 때만 "갈린다"고 말하고, 비슷하면 그렇다고 알린다.
- * 둘 다 같은 자리에 뜬다. (CLAUDE.md 9절 — 03 화면)
- */
-function banner(picked: Persona[]) {
-  const differs = splits(picked, (p) => p.interests);
-
-  if (!differs) {
-    return {
-      tone: "flat" as const,
-      title: "세 분이 비슷한 데를 보고 있어요",
-      body: "관심사가 겹쳐서 의견이 잘 안 갈릴 수 있어요. 한 명을 다른 사람으로 바꾸면 더 많은 이야기가 나옵니다.",
-    };
-  }
-
-  // 마지막 사람의 관심사 뒤에만 "을/를"이 붙는다. 받침에 맞춰 고른다
-  const each = picked
-    .map((p, i) => {
-      const kw = p.interests[0];
-      const particle = i === picked.length - 1 ? josa(kw, "을", "를").slice(kw.length) : "";
-      return `${honorific(p.name)}은 "${kw}"${particle}`;
-    })
-    .join(", ");
-
-  return {
-    tone: "conflict" as const,
-    title: "세 분이 보는 데가 서로 달라요",
-    body: `${each} 먼저 봅니다. 같은 아이디어를 놓고도 다른 데를 짚을 가능성이 커요.`,
-  };
-}
-
-const LABEL_CELL =
-  "w-[118px] shrink-0 bg-th p-4 font-mono text-[11px] font-medium tracking-[0.08em] text-ink-3";
-const CELL = "grow basis-0 border-l border-divider px-[18px] py-4";
-
-function PencilIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
-    </svg>
-  );
-}
-
+import { known, type PersonaCard } from "@/lib/soul-api";
+import { useSoulSession } from "@/lib/use-soul-session";
+import { cardColor, cardTargetId } from "@/lib/persona-presentation";
+const SECONDARY = "inline-flex h-11 shrink-0 items-center justify-center rounded-btn border border-btn-border bg-base px-4 text-sm text-ink-2";
 export function CompareClient() {
-  // 02 에서 고친 내용이 표에도 보이게 저장소에서 읽는다
-  const picked = useTargets().filter((p) => MOCK_PRESELECTED.includes(p.id));
-  const { tone, title, body } = banner(picked);
+  const { session, loading, error: readError } = useSoulSession();
+  if (loading) return <main className="p-20 text-ink-3" role="status">페르소나와 검사 결과를 불러오고 있어요.</main>;
+  if (!session?.cards.length) return <main className="flex grow flex-col items-center justify-center gap-4 p-20"><h1 className="text-2xl font-semibold">먼저 이용자를 고르고 페르소나를 만들어 주세요</h1>{readError && <p role="alert">{readError}</p>}<Link href="/targets" className={SECONDARY}>이용자 고르기</Link></main>;
+  const canEdit = session.status === "SELECTED";
+  const cards = session.cards;
+  const decisions = cards.map(card => ({ name: card.presentation.display_name, criterion: card.immutable_core.decision_model.decision_criteria.find(value => value && value !== "UNKNOWN") || card.immutable_core.reasoning_rules.find(rule => rule.value && rule.value !== "UNKNOWN")?.value }));
+  const distinctDecisions = new Set(decisions.map(value => value.criterion).filter(Boolean)).size > 1;
+  const rows: { label: string; render: (card: PersonaCard) => React.ReactNode; highlight?: boolean }[] = [
+    { label: "요즘 상황", render: c => known(c.immutable_core.identity_context.use_context) },
+    { label: "현재 대안", render: c => known(c.immutable_core.problem_context.current_alternative) },
+    { label: "문제의 정도", render: c => known(c.immutable_core.problem_context.problem_severity) },
+    { label: "바라는 결과", render: c => known(c.immutable_core.goals_motivations.desired_outcome) },
+    { label: "판단 기준", render: c => c.immutable_core.decision_model.decision_criteria.length ? <div className="flex flex-wrap gap-1.5">{c.immutable_core.decision_model.decision_criteria.map((criterion, index) => <Chip key={index}>{criterion}</Chip>)}</div> : known(null) },
+    { label: "도입 장벽", render: c => known(c.immutable_core.decision_model.adoption_barrier) },
+    { label: "전환 비용", render: c => known(c.immutable_core.decision_model.switching_cost) },
+    { label: "예산 조건", render: c => known(c.immutable_core.decision_model.budget_constraint) },
+    { label: "선택의 논리", highlight: true, render: c => c.immutable_core.reasoning_rules.length ? c.immutable_core.reasoning_rules.map(rule => <div key={rule.id} className="mb-3 last:mb-0"><p className="font-medium">{rule.trigger}</p><p className="mt-1">{rule.value} · {rule.tradeoff}</p><p className="mt-1">{rule.conditional_choice}</p><p className="mt-1 text-xs text-muted">추론한 판단 조건 · 실제 경험 확인 전</p></div>) : known(null) },
+    { label: "근거", render: c => c.immutable_core.evidence_anchors.length ? c.immutable_core.evidence_anchors.map((anchor, index) => <p key={index}>L{anchor.level} · {anchor.source_id}: <q>{anchor.quote}</q></p>) : "L0 · 아이디어와 모델의 사전 지식에서 추론한 가설이에요." },
+  ];
+  return <>
+    <main className="flex grow flex-col gap-[18px] px-[clamp(20px,5vw,70px)] pt-[30px] pb-6"><div className="flex flex-wrap items-end gap-4"><div className="grow"><p className="font-mono text-xs tracking-[0.14em] text-muted">STEP 03</p><h1 className="mt-2 text-[28px] font-bold tracking-[-0.022em]">고른 {cards.length}명, 한눈에 보기</h1><p className="mt-2 text-[15px] leading-[1.7] text-ink-3">나란히 놓고 보면 어디서 부딪힐지 미리 보여요. 어색한 부분은 지금 고치는 게 좋아요.</p></div><p className="rounded-[9px] bg-bubble px-3 py-2 text-xs text-ink-3">{session.mode === "mock" ? "모의 테스트 데이터 · 실제 Qwen 결과가 아닙니다" : "실제 사람이 아니라 AI가 만든 가상 인물이에요"}</p></div>
+      {readError && <div role="alert" className="rounded-card bg-conflict-bg p-4 text-sm text-conflict-fg">{readError}</div>}
 
-  return (
-    <>
-      <main className="flex grow flex-col gap-[18px] px-[70px] pt-[30px] pb-6">
-        <div className="flex items-end gap-4">
-          <div className="flex grow flex-col gap-[7px]">
-            <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted">
-              STEP 03
-            </p>
-            <h1 className="text-[28px] font-bold leading-[1.38] tracking-[-0.022em]">
-              고른 세 명, 한눈에 보기
-            </h1>
-            <p className="text-[15px] leading-[1.7] text-ink-3">
-              나란히 놓고 보면 어디서 부딪힐지 미리 보여요. 어색한 부분은 지금 고치는 게
-              좋아요.
-            </p>
-          </div>
-          {/* AI 대화 결과를 실제 검증처럼 포장하지 않는다 */}
-          <p className="flex h-8 shrink-0 items-center gap-[7px] rounded-[9px] bg-bubble px-3 text-xs text-ink-3">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 16v-5M12 8h.01" />
-            </svg>
-            실제 사람이 아니라 AI가 만든 가상 인물이에요
-          </p>
-        </div>
+      <section className={`flex flex-col gap-[5px] rounded-[14px] px-5 py-4 ${distinctDecisions ? "bg-conflict-bg text-conflict-fg" : "bg-bubble text-ink-2"}`} aria-label="판단 기준 비교"><h2 className="text-sm font-semibold">{distinctDecisions ? "카드에 적힌 판단 조건이 서로 달라요" : "판단 기준은 대화에서 더 확인해 보세요"}</h2><p className="text-sm leading-[1.75]">{distinctDecisions ? decisions.filter(item => item.criterion).map(item => `${item.name}: ${item.criterion}`).join(" · ") : "현재 카드에 기록된 판단 기준만으로 의견 차이를 단정할 수 없어요. 같은 질문을 던져 차이를 확인해 보세요."}</p></section>
 
-        <section
-          className={`flex flex-col gap-[5px] rounded-[14px] px-5 py-4 ${
-            tone === "conflict"
-              ? "bg-conflict-bg text-conflict-fg"
-              : "bg-bubble text-ink-2"
-          }`}
-        >
-          <h2 className="text-sm font-semibold">{title}</h2>
-          <p className="text-sm leading-[1.75]">{body}</p>
-        </section>
+      <div className="overflow-x-auto rounded-card border border-card bg-base"><table className="w-full min-w-[760px] table-fixed border-collapse"><thead><tr><th className="w-[118px] bg-th p-4"/><>{cards.map(card => <th key={card.id} className="border-l border-divider px-[18px] py-4 text-left align-top"><div className="flex items-start gap-[11px]"><PersonaAvatar name={card.presentation.display_name} color={cardColor(session, card)} size="lg"/><div className="min-w-0 grow"><p className="text-[16px] font-semibold">{card.presentation.display_name}</p><p className="mt-1 text-xs font-normal leading-relaxed text-muted">{card.immutable_core.identity_context.segment}</p></div>{canEdit && <Link href={`/targets/new?edit=${encodeURIComponent(card.id)}&from=compare`} aria-label={`${card.presentation.display_name} 고치기`} className="inline-flex h-9 items-center rounded-[10px] border border-btn-border px-2 text-xs font-normal">고치기</Link>}</div></th>)}</></tr></thead><tbody>{rows.filter(row => row.label !== "근거" && (row.highlight || cards.some(card => row.render(card) !== known(null)))).map(row => <tr key={row.label} className="border-t border-divider"><th scope="row" className={`w-[118px] p-4 text-left align-top font-mono text-[11px] font-medium ${row.highlight ? "bg-action-bg text-brand" : "bg-th text-ink-3"}`}>{row.label}</th>{cards.map(card => <td key={card.id} className={`border-l border-divider px-[18px] py-4 align-top text-sm leading-[1.8] ${row.highlight ? "bg-hl" : "text-ink-2"}`}>{row.render(card)}</td>)}</tr>)}</tbody></table></div>
+      <details className="rounded-card border border-card bg-base p-5"><summary className="cursor-pointer text-sm font-medium">추가 정보와 확인할 점</summary><div className="mt-3 flex flex-col gap-4">{cards.map((card, index) => <div key={card.id} className="text-sm leading-relaxed"><strong>{card.presentation.display_name}</strong><p className="mt-1">{(session.targets.find(target => target.id === cardTargetId(session, card))?.critical_unknowns.length ?? 0) > 0 ? session.targets.find(target => target.id === cardTargetId(session, card))!.critical_unknowns.join(" · ") : "추가로 확인할 조건이 아직 기록되지 않았습니다."}</p><div className="mt-2 text-xs text-muted">{card.immutable_core.evidence_anchors.length ? card.immutable_core.evidence_anchors.map((anchor, i) => <p key={i}>L{anchor.level} · {anchor.source_id}: <q>{anchor.quote}</q></p>) : <p>실제 고객 자료로 확인하기 전의 AI 추론입니다.</p>}</div>{session.validations[index] && <div className="mt-2 text-muted"><p>{session.validations[index].issues.length ? session.validations[index].issues.map(issue => issue.detail).join(" · ") : "생성 검사 통과"}</p>{session.validations[index].advisory.map((advice, i) => <p key={i}>{advice.detail}</p>)}</div>}</div>)}</div></details>
+    </main><footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line bg-base px-[clamp(20px,5vw,70px)] py-5"><Link href="/targets" className={SECONDARY}>이용자 목록 보기</Link><p className="grow text-sm text-muted">채팅창에서 질문하면 각자가 답하고 서로의 조건을 비교해요.</p><Link href="/chat" className="inline-flex h-12 shrink-0 items-center rounded-btn bg-brand px-[26px] text-[15px] font-semibold text-white">대화 시작하기</Link></footer>
 
-        <div className="flex flex-col overflow-hidden rounded-card border border-card bg-base">
-          {/* 머리 행 — 누구인지 */}
-          <div className="flex border-b border-line">
-            <div className="w-[118px] shrink-0 bg-th px-4 py-[18px]" />
-            {picked.map((p) => (
-              <div
-                key={p.id}
-                className="flex grow basis-0 items-center gap-[11px] border-l border-divider px-[18px] py-4"
-              >
-                <PersonaAvatar name={p.name} color={p.color} size="lg" face={p} />
-                <div className="flex grow flex-col gap-px">
-                  <p className="text-[16px] font-semibold">{p.name}</p>
-                  <p className="text-xs text-muted">
-                    {[p.age, p.gender, p.occupation].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-                {/* 02 의 고치기와 같은 폼을 연다. 저장하면 이 화면으로 돌아온다 */}
-                <Link
-                  href={`/targets/new?edit=${p.id}&from=compare`}
-                  aria-label={`${p.name} 고치기`}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-btn-border bg-base text-ink-3"
-                >
-                  <PencilIcon />
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex border-b border-divider">
-            <div className={LABEL_CELL}>요즘 상황</div>
-            {picked.map((p) => (
-              <div key={p.id} className={`${CELL} text-sm leading-[1.8] text-ink-2`}>
-                {p.situation}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex border-b border-divider">
-            <div className={LABEL_CELL}>관심사</div>
-            {picked.map((p) => (
-              <div key={p.id} className={`${CELL} flex flex-wrap content-start gap-[5px]`}>
-                {p.interests.map((item) => (
-                  <Chip key={item}>{item}</Chip>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex border-b border-divider">
-            <div className={LABEL_CELL}>걱정</div>
-            {picked.map((p) => (
-              <div key={p.id} className={`${CELL} flex flex-wrap content-start gap-[5px]`}>
-                {p.worries.map((item) => (
-                  <Chip key={item} tone="conflict">
-                    {item}
-                  </Chip>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* 이 행이 대화의 목적이라 강조한다 */}
-          <div className="flex">
-            <div className="w-[118px] shrink-0 bg-action-bg p-4 font-mono text-[11px] font-semibold tracking-[0.08em] text-brand">
-              물어볼 것
-            </div>
-            {picked.map((p) => (
-              <div
-                key={p.id}
-                className="grow basis-0 border-l border-action-border bg-hl px-[18px] py-4 text-sm font-medium leading-[1.65]"
-              >
-                {p.checkpoint}
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      <footer className="flex h-[82px] shrink-0 items-center gap-3 border-t border-line bg-base px-[70px]">
-        <Link
-          href="/targets"
-          className="inline-flex h-[46px] shrink-0 items-center rounded-btn border border-btn-border bg-base px-[18px] text-sm text-ink-2"
-        >
-          사람 바꾸기
-        </Link>
-        <p className="grow text-sm text-muted">
-          먼저 세 명이 함께 이야기하고, 더 듣고 싶은 사람과는 따로 대화할 수 있어요.
-        </p>
-        <Link
-          href="/chat"
-          className="inline-flex h-12 shrink-0 items-center rounded-btn bg-brand px-[26px] text-[15px] font-semibold text-white"
-        >
-          대화 시작하기
-        </Link>
-      </footer>
-    </>
-  );
+  </>;
 }

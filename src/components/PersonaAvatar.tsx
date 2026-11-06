@@ -1,4 +1,4 @@
-import type { Archetype, Persona, PersonaColor } from "@/lib/types";
+import type { PersonaColor } from "@/lib/types";
 
 const BG: Record<PersonaColor, string> = {
   1: "bg-persona-1",
@@ -14,18 +14,9 @@ const SIZE = {
   lg: "size-[38px]",
 } as const;
 
-/** 얼굴을 그릴 때 쓰는 카드 값. 없으면 이름으로만 정한다 */
-export type AvatarFace = Partial<Pick<Persona, "id" | "gender" | "age" | "archetype">>;
+/** Decorative fictional faces, seeded by display identity; no age, gender or stance inference. */
+export type AvatarFace = { id?: string };
 
-/**
- * 페르소나 얼굴. 실제 사람 사진처럼 보이면 "AI가 만든 가짜 사람"으로 읽혀 대화에 몰입이 깨진다.
- * 그래서 굵은 선·점 눈의 만화 얼굴(윔피 키드풍)로 그린다.
- *
- * - 색만으로 사람을 구분하지 않는다: 배경색 + 사람마다 다른 얼굴(머리 모양·안경) + 옆에 이름 (CLAUDE.md 7절)
- * - 머리 모양은 성별·나이, 세부(안경·머리 변형)는 id 로 고정 — 같은 사람은 어느 화면에서나 같은 얼굴
- * - 표정은 원형(archetype)을 살짝 드러낸다: 혁신가 활짝, 비전가 씩, 실용 미소, 보수 작은 미소, 회의 한쪽 눈썹
- * 이름은 이 컴포넌트 밖에서 반드시 같이 표시한다.
- */
 export function PersonaAvatar({
   name,
   color,
@@ -38,11 +29,9 @@ export function PersonaAvatar({
   face?: AvatarFace;
 }) {
   const seed = hash(face?.id ?? name);
-  const female = face?.gender === "여";
-  const older = (face?.age ?? 0) >= 38;
-  const hair = female ? FEMALE_HAIR[seed % FEMALE_HAIR.length] : older ? "receding" : MALE_HAIR[seed % MALE_HAIR.length];
-  const glasses = older || seed % 5 === 3;
-  const expr = EXPRESSION[face?.archetype ?? "pragmatist"];
+  const hair = HAIR[seed % HAIR.length];
+  const glasses = seed % 5 === 3;
+  const expr = { brows: "M14.7 18.9h3.2M22.1 18.9h3.2", mouth: "M17.5 27q2.5 1.8 5 0", open: false };
 
   return (
     <span aria-hidden="true" className={`flex shrink-0 overflow-hidden rounded-full ${BG[color]} ${SIZE[size]}`}>
@@ -78,8 +67,7 @@ export function PersonaAvatar({
 }
 
 type Hair = "greg" | "sidePart" | "buzz" | "receding" | "long" | "bob" | "ponytail";
-const MALE_HAIR: Hair[] = ["greg", "sidePart", "buzz"];
-const FEMALE_HAIR: Hair[] = ["long", "bob", "ponytail"];
+const HAIR: Hair[] = ["greg", "sidePart", "buzz", "long", "bob", "ponytail"];
 
 /** 머리 뒤로 내려오는 머리카락 (얼굴보다 먼저 그린다) */
 const HAIR_BACK: Partial<Record<Hair, string>> = {
@@ -104,19 +92,6 @@ const HAIR_FRONT: Partial<Record<Hair, string>> = {
 const HAIR_LINES: Partial<Record<Hair, string>> = {
   greg: "M17.6 10.9l-1.3-3.4M20.3 10.5l.2-3.8M23 10.9l1.6-3.2",
   receding: "M19.4 10.7q.6-1.8 1.8-2.4",
-};
-
-const EXPRESSION: Record<Archetype, { brows: string; mouth: string; open?: boolean }> = {
-  // 새로우면 일단 신난다
-  innovator: { brows: "M14.6 18.6q1.7-1.4 3.4 0M22 18.6q1.7-1.4 3.4 0", mouth: "M16.6 26.4q3.4 4.2 6.8 0z", open: true },
-  // 확신에 찬 한쪽 미소
-  visionary: { brows: "M14.6 18.9l3.3-.6M22.1 18.3l3.3.6", mouth: "M17.4 27.4q3.2 1.1 5.4-1.4" },
-  // 차분한 미소
-  pragmatist: { brows: "M14.7 18.9h3.2M22.1 18.9h3.2", mouth: "M17.5 27q2.5 1.8 5 0" },
-  // 조심스러운 작은 미소
-  conservative: { brows: "M14.7 18.6l3.2.6M22.1 19.2l3.2-.6", mouth: "M18.4 27.2q1.6.8 3.2 0" },
-  // 한쪽 눈썹을 올리고 입은 일자
-  skeptic: { brows: "M14.7 19.1h3.2M22.1 18.2l3.2-1", mouth: "M17.7 27.5h4.6" },
 };
 
 function hash(s: string) {

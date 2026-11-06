@@ -1,200 +1,73 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageFooterBar } from "@/components/PageFooterBar";
 import { PersonaCard } from "@/components/PersonaCard";
-import { MOCK_IDEA_SUMMARY, MOCK_PRESELECTED } from "@/lib/mock";
-import { useTargets } from "@/lib/targetStore";
-import type { Persona } from "@/lib/types";
-
-/** 대화는 1:3 으로 고정이다. 2명이면 핑퐁이고 4명 이상은 순차 발화라 읽기 벅차다. */
-const PICK_COUNT = 3;
-
-/** 사람을 셀 때는 "1명"이 아니라 "한 명". 시안 문구를 기준으로 삼는다. */
-const COUNT_WORD = ["영", "한", "두", "세"] as const;
-
-/**
- * 고른 사람들 사이에서 그 항목이 갈리는지 본다.
- * 셋이 공유하는 키워드가 하나도 없으면 갈린다고 본다.
- */
-function splits(picked: Persona[], pick: (p: Persona) => string[]) {
-  const [first, ...rest] = picked.map(pick);
-  return !first.some((kw) => rest.every((other) => other.includes(kw)));
-}
-
-/**
- * 하단 문구. 값이 실제로 갈릴 때만 "갈리는 지점"을 말하고,
- * 비슷하면 그렇다고 알린다. 하드코딩하면 데이터가 바뀔 때 거짓말이 된다.
- */
-function footerText(picked: Persona[]) {
-  const names = picked.map((p) => p.name).join(" · ");
-
-  if (picked.length < PICK_COUNT) {
-    return {
-      title:
-        picked.length === 0
-          ? "아직 고른 사람이 없어요"
-          : `${names}, ${COUNT_WORD[picked.length]} 명 골랐어요`,
-      description: `${COUNT_WORD[PICK_COUNT]} 명을 골라야 대화를 시작할 수 있어요.`,
-    };
-  }
-
-  const points = [
-    splits(picked, (p) => p.interests) && "관심사",
-    splits(picked, (p) => p.worries) && "걱정",
-  ].filter((x): x is string => Boolean(x));
-
-  return {
-    title: `${names}, ${COUNT_WORD[PICK_COUNT]} 명 골랐어요`,
-    description:
-      points.length > 0
-        ? `${points.join("도 ")}도 서로 달라서, 의견이 갈리는 지점을 볼 수 있어요.`
-        : "세 분이 비슷해서 의견이 잘 안 갈릴 수 있어요.",
-  };
-}
-
-const SECONDARY_BTN =
-  "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-btn border border-btn-border bg-base px-4 text-sm text-ink-2";
-
+import { IdeaSummary } from "@/components/IdeaSummary";
+import { loadCustomTargets } from "@/components/TargetEditor";
+import { runSessionAction, type Target } from "@/lib/soul-api";
+import { cardTargetId, selectionPayload, targetPersonas } from "@/lib/persona-presentation";
+import { useSoulSession } from "@/lib/use-soul-session";
+const SECONDARY = "inline-flex h-11 shrink-0 items-center justify-center rounded-btn border border-btn-border bg-base px-4 text-sm text-ink-2 disabled:opacity-50";
+const COUNT = ["", "한", "두", "세"];
 export function TargetsClient() {
   const router = useRouter();
-  // 추천 다섯 명(고친 내용 반영) + 02-1 에서 직접 만든 사람
-  const personas = useTargets();
-  const [pickedIds, setPickedIds] = useState<string[]>(MOCK_PRESELECTED);
-
-  const toggle = (id: string) =>
-    setPickedIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : prev.length < PICK_COUNT
-          ? [...prev, id]
-          : prev,
-    );
-
-  // 고른 순서가 아니라 카드에 보이는 순서로 이름을 읽어준다
-  const picked = personas.filter((p) => pickedIds.includes(p.id));
-  const full = pickedIds.length >= PICK_COUNT;
-  const { title, description } = footerText(picked);
-
-  return (
-    <>
-      <main className="flex grow flex-col gap-5 px-20 pt-[30px] pb-6">
-        {/* 01 에서 읽어온 내용. 틀리면 여기서 되돌아가 고친다 */}
-        <section className="flex items-center gap-7 rounded-card border border-card bg-base px-6 py-[18px]">
-          <h2 className="shrink-0 font-mono text-[11px] font-semibold tracking-[0.14em] text-muted">
-            읽은 내용
-          </h2>
-          <dl className="flex grow items-center gap-7">
-            {[
-              { k: "풀려는 문제", v: MOCK_IDEA_SUMMARY.problem },
-              { k: "푸는 방법", v: MOCK_IDEA_SUMMARY.solution },
-              { k: "겪을 사람", v: MOCK_IDEA_SUMMARY.likelyAudience },
-            ].map((row) => (
-              <div key={row.k} className="flex flex-col gap-[3px]">
-                <dt className="text-xs text-muted">{row.k}</dt>
-                <dd className="text-sm font-medium">{row.v}</dd>
-              </div>
-            ))}
-          </dl>
-          <Link href="/new" className={SECONDARY_BTN}>
-            고칠래요
-          </Link>
-        </section>
-
-        <div className="flex items-end gap-4">
-          <div className="flex grow flex-col gap-[7px]">
-            <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted">
-              STEP 02
-            </p>
-            <h1 className="text-[28px] font-bold leading-[1.38] tracking-[-0.022em]">
-              타깃 후보를 추천하고, 고칩니다
-            </h1>
-            <p className="text-[15px] leading-[1.7] text-ink-3">
-              확정된 타깃이 아니라 후보예요. 세 명을 고르면 대화가 시작되고, 내용은
-              얼마든지 고칠 수 있어요.
-            </p>
-          </div>
-          {/* TODO: 추천 다시 받기 — AI팀 엔드포인트 연결 후 */}
-          <button type="button" className={SECONDARY_BTN}>
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M21 12a9 9 0 1 1-3-6.7" />
-              <path d="M21 4v5h-5" />
-            </svg>
-            다시 찾아보기
-          </button>
-        </div>
-
-        <ul className="grid grid-cols-3 gap-[18px]">
-          {personas.map((persona) => (
-            <li key={persona.id} className="flex">
-              <PersonaCard
-                persona={persona}
-                selected={pickedIds.includes(persona.id)}
-                selectDisabled={full}
-                onToggle={() => toggle(persona.id)}
-                onEdit={() => router.push(`/targets/new?edit=${persona.id}`)}
-              />
-            </li>
-          ))}
-
-          <li className="flex">
-            <div className="flex grow flex-col items-center justify-center gap-[11px] rounded-card border border-dashed border-btn-border bg-panel px-[22px] py-6">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--brand)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <h3 className="text-[15px] font-semibold">직접 만들기</h3>
-              <p className="max-w-[280px] text-center text-[13px] leading-[1.7] text-ink-3">
-                이름과 상황 한 줄만 쓰면 나머지 항목은 채워드려요. 인터뷰 녹취나 설문
-                파일을 올려도 돼요.
-              </p>
-              <Link href="/targets/new" className={`${SECONDARY_BTN} mt-1 px-[18px]`}>
-                만들러 가기
-              </Link>
-            </div>
-          </li>
-        </ul>
-      </main>
-
-      <PageFooterBar title={title} description={description}>
-        {full ? (
-          <Link
-            href="/compare"
-            className="inline-flex h-12 shrink-0 items-center rounded-btn bg-brand px-[26px] text-[15px] font-semibold text-white"
-          >
-            이 세 명으로 진행하기
-          </Link>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="h-12 shrink-0 rounded-btn bg-bubble px-[26px] text-[15px] font-semibold text-muted"
-          >
-            이 세 명으로 진행하기
-          </button>
-        )}
-      </PageFooterBar>
-    </>
-  );
+  const { session, loading, error: readError } = useSoulSession();
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
+  const [custom, setCustom] = useState<Target[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const initialized = useRef<string | null>(null);
+  useEffect(() => {
+    if (!session || initialized.current === session.id) return;
+    initialized.current = session.id;
+    setCustom(loadCustomTargets(session.id));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore this session's external browser selection once.
+    try { const saved = JSON.parse(localStorage.getItem(`soul.qwen.target-selection.v1:${session.id}`) ?? "[]"); if (Array.isArray(saved)) setPickedIds(saved.filter((id): id is string => typeof id === "string").slice(0, 3)); } catch {}
+  }, [session]);
+  if (loading) return <main className="p-20 text-ink-3" role="status">타깃을 불러오고 있어요.</main>;
+  if (!session) return <main className="flex grow flex-col items-center justify-center gap-4 p-20"><h1 className="text-2xl font-semibold">먼저 아이디어를 적어주세요</h1>{readError && <p role="alert" className="text-conflict-fg">{readError}</p>}<Link href="/new" className={SECONDARY}>아이디어 적기</Link></main>;
+  const sessionId = session.id;
+  const canEdit = session.status === "CREATED" || session.status === "SELECTED";
+  const targets = [...session.targets.filter(t => !custom.some(c => c.id === t.id)), ...custom];
+  const personas = targetPersonas(session, targets);
+  const picked = targets.filter(t => pickedIds.includes(t.id));
+  const names = personas.filter(p => pickedIds.includes(p.id)).map(p => p.name).join(" · ");
+  function toggle(id: string) {
+    const next = pickedIds.includes(id) ? pickedIds.filter(value => value !== id) : picked.length < 3 ? [...pickedIds.filter(value => targets.some(t => t.id === value)), id] : pickedIds;
+    setPickedIds(next);
+    try { localStorage.setItem(`soul.qwen.target-selection.v1:${sessionId}`, JSON.stringify(next)); } catch {}
+  }
+  function edit(id: string) {
+    const card = session?.cards.find(value => cardTargetId(session, value) === id);
+    router.push(card ? `/targets/new?edit=${encodeURIComponent(card.id)}&from=compare` : `/targets/new?edit=${encodeURIComponent(id)}`);
+  }
+  async function select() {
+    if (!picked.length || busy) return;
+    const body = selectionPayload(picked, custom, personas);
+    if (new Set(Object.values(body.display_names)).size !== picked.length) { setError("고른 페르소나의 이름을 서로 다르게 지정해 주세요."); return; }
+    setBusy(true); setError(null);
+    try { await runSessionAction(sessionId, "select", body); router.push("/compare"); }
+    catch (err) { setError(err instanceof Error ? err.message : "페르소나를 준비하지 못했습니다."); }
+    finally { setBusy(false); }
+  }
+  async function recommend() {
+    setBusy(true); setError(null);
+    try { await runSessionAction(sessionId, "targets/recommend"); setPickedIds([]); localStorage.removeItem(`soul.qwen.target-selection.v1:${sessionId}`); }
+    catch (err) { setError(err instanceof Error ? err.message : "추천을 받지 못했습니다."); }
+    finally { setBusy(false); }
+  }
+  return <>
+    <main className="flex grow flex-col gap-5 px-[clamp(20px,6vw,80px)] pt-[30px] pb-6">
+      <IdeaSummary input={session.input} />
+      <div className="flex flex-wrap items-end gap-4"><div className="grow"><p className="font-mono text-xs tracking-[0.14em] text-muted">STEP 02</p><h1 className="mt-2 text-[28px] font-bold tracking-[-0.022em]">타깃 후보를 추천하고, 고칩니다</h1><p className="mt-2 text-[15px] leading-[1.7] text-ink-3">확정된 타깃이 아니라 후보예요. 최대 세 명을 고르면 페르소나를 만들고, 그 뒤 질문할 수 있어요.</p></div><button type="button" onClick={() => void recommend()} disabled={busy || session.status !== "CREATED" || session.cards.length > 0} className={SECONDARY}>다시 찾아보기</button>{session.cards.length > 0 && <Link href="/compare" className={SECONDARY}>고른 페르소나 보기</Link>}</div>
+      {session.mode === "mock" && <p className="rounded-card bg-action-bg p-4 text-sm text-brand">모의 테스트 모드입니다. 실제 Qwen 결과가 아닙니다.</p>}
+      {!canEdit && <p className="rounded-card bg-bubble p-4 text-sm text-ink-3">대화를 시작한 페르소나는 유지합니다. 다른 타깃은 새 아이디어에서 고를 수 있어요.</p>}
+      {(error || readError) && <div role="alert" className="rounded-card bg-conflict-bg p-4 text-sm text-conflict-fg">{error || readError}</div>}
+      {busy && <p role="status" className="rounded-card bg-action-bg p-4 text-sm text-brand">페르소나를 준비하고 있어요. 잠시만 기다려 주세요.</p>}
+      <ul className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">{personas.map(persona => <li key={persona.id} className="flex"><PersonaCard persona={persona} selected={pickedIds.includes(persona.id)} selectDisabled={busy || !canEdit || picked.length >= 3} onToggle={() => { if (!busy && canEdit) toggle(persona.id); }} onEdit={canEdit && !busy ? () => edit(persona.id) : undefined} readOnly={!canEdit || busy} /></li>)}{canEdit && <li className="flex"><div className="flex grow flex-col items-center justify-center gap-3 rounded-card border border-dashed border-btn-border bg-panel p-6"><span className="text-[28px] leading-none text-brand" aria-hidden="true">＋</span><h3 className="text-[15px] font-semibold">직접 만들기</h3><p className="text-center text-[13px] leading-[1.7] text-ink-3">이름과 이용자 유형, 겪는 상황을 직접 적어주세요.</p><Link href="/targets/new" aria-disabled={busy} tabIndex={busy ? -1 : undefined} className={`${SECONDARY} ${busy ? "pointer-events-none opacity-50" : ""}`}>만들러 가기</Link></div></li>}</ul>
+    </main>
+    <PageFooterBar title={picked.length ? `${names}, ${COUNT[picked.length]} 명 골랐어요` : "아직 고른 사람이 없어요"} description={busy ? "대화할 페르소나를 준비하고 있어요." : "한 명부터 세 명까지 함께 이야기할 수 있어요."}><button type="button" onClick={() => void select()} disabled={!picked.length || busy || !canEdit} className="h-12 shrink-0 rounded-btn bg-brand px-[26px] text-[15px] font-semibold text-white disabled:bg-bubble disabled:text-muted">{busy ? "준비 중…" : picked.length ? `이 ${COUNT[picked.length]} 명으로 진행하기` : "페르소나를 골라주세요"}</button></PageFooterBar>
+  </>;
 }

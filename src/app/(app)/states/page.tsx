@@ -26,7 +26,7 @@ export default function Page() {
           <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted">STATES</p>
           <h1 className="text-[28px] font-bold leading-[1.38] tracking-[-0.022em]">상태 화면 모음</h1>
           <p className="text-[15px] leading-[1.7] text-ink-3">
-            흐름 중간에 뜨는 화면들이에요. 04 대화·05 리포트를 붙이면 실제 흐름에서 뜹니다.
+            실제 저장한 세션의 상태 화면으로 이동합니다. 진행 상황과 오류는 해당 화면에서 확인할 수 있어요.
           </p>
         </div>
         <ul className="grid grid-cols-2 gap-4">
