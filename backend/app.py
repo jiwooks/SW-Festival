@@ -96,7 +96,12 @@ def create_app(db=None,llm=None):
                 check_target(t)
                 if not set(t.evidence_ids)<={e.source_id for e in s.input.evidence}: raise HTTPException(422,'custom target invented evidence IDs')
                 if not t.evidence_ids: t.evidence_level=EvidenceLevel.L0; t.confidence='low'
-                elif t.evidence_level>min(e.level for e in s.input.evidence if e.source_id in t.evidence_ids): raise HTTPException(422,'custom target evidence level exceeds sources')
+                else:
+                    # Cap a claimed level at the weakest cited source instead of rejecting the selection.
+                    cap=min(e.level for e in s.input.evidence if e.source_id in t.evidence_ids)
+                    if t.evidence_level>cap:
+                        t.evidence_level=cap
+                        if cap==EvidenceLevel.L0: t.confidence='low'
             selection_audit=validate_target_selection(s.brief,chosen,s.target_audits,client)
             for n,t in enumerate(chosen):
                 card,audit=build_card(t,cards,s.input.evidence,client,f'p{n+1}',s.brief); cards.append(card); validations.append(audit)

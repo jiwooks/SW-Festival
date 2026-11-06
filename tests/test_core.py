@@ -148,10 +148,18 @@ def test_controller_mentions(setup):
     public.add({'id':'g','persona_id':'p1','phase':'group','content':'p3 의견을 듣고 싶어요'})
     assert TurnController().select(list(agents),agents,'question',public,4,{})=='p3'
 
-def test_unknown_source_no_promotion(setup):
+class Invent(LLMClient):
+    def call(self,task,payload,schema,**kw):
+        data=super().call(task,payload,schema,**kw)
+        if task=='targets': data.targets[0].evidence_ids=['fake']; data.targets[0].evidence_level=3
+        return data
+
+def test_unknown_source_no_promotion(setup,monkeypatch):
     _,llm,b,_,_=setup
-    class Invent(LLMClient):
-        def call(self,task,payload,schema,**kw):
-            data=super().call(task,payload,schema,**kw)
-            data.targets[0].evidence_ids=['fake']; return data
+    monkeypatch.setenv('TARGET_REVIEW','strict')
     with pytest.raises(ValueError,match='invented evidence'): generate_targets(b,[],Invent('mock'))
+
+def test_unknown_source_dropped_without_promotion_when_lenient(setup):
+    _,llm,b,_,_=setup
+    ts=generate_targets(b,[],Invent('mock'))
+    assert all(not t.evidence_ids and t.evidence_level==0 and t.confidence=='low' for t in ts)
