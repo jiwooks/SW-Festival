@@ -118,7 +118,7 @@ export function PersonaCard({
 
       {persona.notes && <AttrRow label="현재 대안" labelWidth={LABEL_W} align="start">{persona.notes}</AttrRow>}
       {!!persona.criticalUnknowns?.length && <AttrRow label="확인할 점" labelWidth={LABEL_W} align="start"><span className="flex flex-wrap gap-[5px]">{persona.criticalUnknowns.map((item, index) => <Chip key={index} tone="conflict">{item}</Chip>)}</span></AttrRow>}
-      {persona.evidenceLevel !== undefined && <AttrRow label="근거" labelWidth={LABEL_W} align="start"><Chip tone="action">L{persona.evidenceLevel} · {persona.evidenceLevel === 0 ? "AI가 추론한 가설" : "제공 자료 참고"}</Chip></AttrRow>}
+      {persona.evidenceLevel !== undefined && <AttrRow label="근거" labelWidth={LABEL_W} align="start"><Chip tone="action">{persona.evidenceLevel === 0 ? "AI가 추론한 가설" : "제공 자료 참고"}</Chip></AttrRow>}
       {(interests.length > 0 || worries.length > 0) && <div className="flex flex-col gap-[9px]">
         <AttrRow label="관심사" labelWidth={LABEL_W} align="start">
           <span className="flex flex-wrap gap-[5px]">
